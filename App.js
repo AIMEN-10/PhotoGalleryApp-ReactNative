@@ -1,0 +1,331 @@
+import React from 'react';
+import {View,Image} from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Addmetadata from './Addmetadata';
+import ViewPhoto from './ViewPhoto';
+import Images from './Images';
+import Folders from './Folders';
+import Editnavbar from './Editnavbar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Editscreen from './Editscreen';
+import Login2 from './LogIn2';
+import Signup from './SignUp';
+import Home from './Home';
+import Test from './test';
+import Location from './Location';
+import Checkbox_example from './Checkbox_example';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import Groupbylocation from './Groupbylocation';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import colors from './theme/colors';
+import Bottomnavigation from './Bottomnavigation';
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+import { enableScreens } from 'react-native-screens';
+// enableScreens();
+
+
+
+
+
+const MainStack = () => (
+
+  <Stack.Navigator>
+    
+     <Stack.Screen 
+      name="navbar" 
+      component={Bottomnavigation} 
+      options={{ headerShown: false }} 
+    />
+    <Stack.Screen 
+      name="secondnavbar" 
+      component={Editnavbar} 
+      options={{ headerShown: false }} 
+    />
+    <Stack.Screen 
+    
+      name="Gallery" 
+      component={Addmetadata} 
+      options={{ headerShown: false }} 
+    />
+    <Stack.Screen 
+      name="Folders" 
+      component={Folders} 
+      options={{ headerShown: false, lazy: true  }} 
+    />
+    <Stack.Screen 
+      name="Images" 
+      component={Images} 
+      options={{ headerShown: false , lazy: true }} 
+    />
+    <Stack.Screen 
+      name="ViewPhoto" 
+      component={ViewPhoto} 
+      options={{ headerShown: false, lazy: true }} 
+    />
+    <Stack.Screen 
+      name="Edit" 
+      component={Editscreen} 
+      options={{ headerShown: false }} 
+    />
+    
+  </Stack.Navigator>
+);
+const App = () => {
+  const Stack = createNativeStackNavigator();
+  global.baseUrl = 'http://192.168.43.155/MapcourseApi/';
+
+  
+  return (
+    <NavigationContainer >
+  <MainStack />
+  
+</NavigationContainer>
+
+
+    // <NavigationContainer>
+    //    <Stack.Navigator >
+      
+    //      <Stack.Screen 
+    //       name="SignIn" 
+    //       component={Signup} 
+    //       options={{ headerShown: false }} // Hides the header for this screen
+    //     />
+    //      <Stack.Screen 
+    //       name="LogIn" 
+    //       component={Login2} 
+    //       options={{ headerShown: false }} // Hides the header for this screen
+    //     />
+        
+    //       <Stack.Screen name="Home" component={Home} />
+    //    </Stack.Navigator>
+    // </NavigationContainer>
+    
+    //Removed the unnecessary View wrapper here
+   
+    // <NavigationContainer>
+    //   <Stack.Navigator >
+    //     <Stack.Screen 
+    //       name="Gallery" 
+    //       component={Addmetadata} 
+    //       options={{ headerShown: false }} // Hides the header for this screen
+    //     />
+    //     <Stack.Screen 
+    //       name="Images" 
+    //       component={Images} 
+    //       options={{ headerShown: false }} // Hides the header for this screen
+    //     />
+    //     <Stack.Screen 
+    //       name="ViewPhoto" 
+    //       component={ViewPhoto} 
+    //       options={{ headerShown: false }}
+    //     />
+    //      <Stack.Screen 
+    //       name="Edit" 
+    //       component={Editscreen} 
+    //       options={{ headerShown: false }}
+    //     />
+    //   </Stack.Navigator>
+    // </NavigationContainer>
+
+
+   
+  //   <Addmetadata/>
+  //   <SafeAreaProvider>
+  //   <Editnavbar />
+  // </SafeAreaProvider>
+   //<Editscreen></Editscreen>
+  //<Test/>
+  //<Location/>
+  );
+};
+
+export default App;
+
+
+//asg
+// import React, { useState } from 'react';
+// import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+// import { NavigationContainer } from '@react-navigation/native';
+// import { createStackNavigator } from '@react-navigation/stack';
+
+// const Stack = createStackNavigator();
+
+// // Initializing Users Array
+// const initialUsers = [
+//   { name: 'John', email: 'john@example.com', gender: 'Male', password: '12345' },
+//   { name: 'Jane', email: 'jane@example.com', gender: 'Female', password: '54321' },
+//   { name: 'Bob', email: 'bob@example.com', gender: 'Male', password: 'password123' },
+//   { name: 'Alice', email: 'alice@example.com', gender: 'Female', password: 'mysecurepass' },
+//   { name: 'Charlie', email: 'charlie@example.com', gender: 'Male', password: 'charliepass' }
+// ];
+
+// // Sign In Screen Component
+// const SignInScreen = ({ navigation, users, setCurrentUser }) => {
+//   const [email, setEmail] = useState('');
+//   const [password, setPassword] = useState('');
+//   const [inputBackgroundColor, setInputBackgroundColor] = useState('white');
+
+//   const handleSignIn = () => {
+//     const user = users.find(u => u.email === email && u.password === password);
+//     if (user) {
+//       setCurrentUser(user);
+//       navigation.navigate('Home');
+//     } else {
+//       setInputBackgroundColor('red');
+//       Alert.alert('Error', 'Incorrect email or password');
+//     }
+//   };
+
+//   return (
+//     <View style={styles.container}>
+//       <Text style={styles.title}>Sign In</Text>
+//       <TextInput
+//         style={[styles.input, { backgroundColor: inputBackgroundColor }]}
+//         placeholder="Email"
+//         value={email}
+//         onChangeText={setEmail}
+//       />
+//       <TextInput
+//         style={[styles.input, { backgroundColor: inputBackgroundColor }]}
+//         placeholder="Password"
+//         secureTextEntry
+//         value={password}
+//         onChangeText={setPassword}
+//       />
+//       <Button title="Sign In" onPress={handleSignIn} />
+//       <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+//         <Text style={styles.link}>Sign Up</Text>
+//       </TouchableOpacity>
+//     </View>
+//   );
+// };
+
+// // Sign Up Screen Component
+// const SignUpScreen = ({ navigation, setUsers }) => {
+//   const [name, setName] = useState('');
+//   const [email, setEmail] = useState('');
+//   const [gender, setGender] = useState('');
+//   const [password, setPassword] = useState('');
+//   const [confirmPassword, setConfirmPassword] = useState('');
+
+//   const handleSignUp = () => {
+//     if (password !== confirmPassword) {
+//       Alert.alert('Error', 'Passwords do not match');
+//       return;
+//     }
+
+//     const newUser = { name, email, gender, password };
+//     setUsers(prevUsers => [...prevUsers, newUser]);
+//     navigation.navigate('SignIn');
+//   };
+
+//   return (
+//     <View style={styles.container}>
+//       <Text style={styles.title}>Sign Up</Text>
+//       <TextInput
+//         style={styles.input}
+//         placeholder="Name"
+//         value={name}
+//         onChangeText={setName}
+//       />
+//       <TextInput
+//         style={styles.input}
+//         placeholder="Email"
+//         value={email}
+//         onChangeText={setEmail}
+//       />
+//       <TextInput
+//         style={styles.input}
+//         placeholder="Gender"
+//         value={gender}
+//         onChangeText={setGender}
+//       />
+//       <TextInput
+//         style={styles.input}
+//         placeholder="Password"
+//         secureTextEntry
+//         value={password}
+//         onChangeText={setPassword}
+//       />
+//       <TextInput
+//         style={styles.input}
+//         placeholder="Confirm Password"
+//         secureTextEntry
+//         value={confirmPassword}
+//         onChangeText={setConfirmPassword}
+//       />
+//       <Button title="Sign Up" onPress={handleSignUp} />
+//     </View>
+//   );
+// };
+
+// // Home Screen Component
+// const HomeScreen = ({ currentUser, navigation }) => {
+//   return (
+//     <View style={styles.container}>
+//       <Text style={styles.title}>Home</Text>
+//       <Text style={styles.info}>Name: {currentUser.name}</Text>
+//       <Text style={styles.info}>Email: {currentUser.email}</Text>
+//       <Text style={styles.info}>Gender: {currentUser.gender}</Text>
+//       <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
+//         <Text style={styles.link}>Log Out</Text>
+//       </TouchableOpacity>
+//     </View>
+//   );
+// };
+
+// // Main App Component
+// const App = () => {
+//   const [users, setUsers] = useState(initialUsers);
+//   const [currentUser, setCurrentUser] = useState(null);
+
+//   return (
+//     <NavigationContainer>
+//       <Stack.Navigator initialRouteName="SignIn">
+//         <Stack.Screen name="SignIn">
+//           {props => <SignInScreen {...props} users={users} setCurrentUser={setCurrentUser} />}
+//         </Stack.Screen>
+//         <Stack.Screen name="SignUp">
+//           {props => <SignUpScreen {...props} setUsers={setUsers} />}
+//         </Stack.Screen>
+//         <Stack.Screen name="Home">
+//           {props => <HomeScreen {...props} currentUser={currentUser} />}
+//         </Stack.Screen>
+//       </Stack.Navigator>
+//     </NavigationContainer>
+//   );
+// };
+
+// // Styles for the components
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//     padding: 20,
+//   },
+//   title: {
+//     fontSize: 24,
+//     marginBottom: 20,
+//   },
+//   input: {
+//     height: 40,
+//     borderColor: 'gray',
+//     borderWidth: 1,
+//     marginBottom: 10,
+//     width: '100%',
+//     paddingLeft: 10,
+//   },
+//   link: {
+//     color: 'blue',
+//     marginTop: 10,
+//   },
+//   info: {
+//     fontSize: 18,
+//     marginBottom: 10,
+//   },
+// });
+
+// export default App;
