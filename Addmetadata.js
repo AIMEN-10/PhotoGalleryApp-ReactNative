@@ -23,10 +23,6 @@ const Addmetadata = ({ route }) => {
         <Cameranavbar />
       </View>
 
-{/* <View>
-  <Bottomnavigation/>
-</View> */}
-      
        </View>
       );
     };

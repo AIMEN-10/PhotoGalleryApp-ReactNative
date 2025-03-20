@@ -7,6 +7,7 @@ import ViewPhoto from './ViewPhoto';
 import Images from './Images';
 import Folders from './Folders';
 import Editnavbar from './Editnavbar';
+import Search from './Search';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Editscreen from './Editscreen';
 import Login2 from './LogIn2';
@@ -22,6 +23,7 @@ import colors from './theme/colors';
 import Bottomnavigation from './Bottomnavigation';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+import { Provider as PaperProvider } from 'react-native-paper'; 
 import { enableScreens } from 'react-native-screens';
 // enableScreens();
 
@@ -30,7 +32,7 @@ import { enableScreens } from 'react-native-screens';
 
 
 const MainStack = () => (
-
+<PaperProvider>
   <Stack.Navigator>
     
      <Stack.Screen 
@@ -65,12 +67,18 @@ const MainStack = () => (
       options={{ headerShown: false, lazy: true }} 
     />
     <Stack.Screen 
+      name="Search" 
+      component={Search} 
+      options={{ headerShown: false, lazy: true }} 
+    />
+    <Stack.Screen 
       name="Edit" 
       component={Editscreen} 
       options={{ headerShown: false }} 
     />
     
   </Stack.Navigator>
+  </PaperProvider>
 );
 const App = () => {
   const Stack = createNativeStackNavigator();

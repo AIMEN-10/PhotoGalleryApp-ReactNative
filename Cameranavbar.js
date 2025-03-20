@@ -99,13 +99,10 @@ const handleSave = async (image) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop:200,
-    // flex: 1,
-    // justifyContent: 'center',
-    // alignItems: 'center',
-    
-    
-  },
+    position: "relative",
+    top: 200,
+}
+,
   image: {
     width: 150,
     height: 150,

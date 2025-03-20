@@ -193,7 +193,7 @@ const Folders = ({ route }) => {
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: 80,
+        marginTop: 60,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 25,
