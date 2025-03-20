@@ -7,5 +7,6 @@ export default {
 
     secondary: '#FFFFFF', // White
     dark: '#000000',      // Black
+    grey:'#A9A9A9'
   };
   
