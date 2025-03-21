@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Image, Text, StyleSheet, Pressable, TextInput, ScrollView, TouchableOpacity, Button } from 'react-native';
+import { View, Image, Text, StyleSheet, Pressable, TextInput, ScrollView, TouchableOpacity, PermissionsAndroid, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Checkbox, Chip } from 'react-native-paper';
+import { Checkbox, Chip, Button } from 'react-native-paper';
 import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
+import MapView, { Marker, Polygon, Polyline } from "react-native-maps";
 
 const Search = ({ route }) => {
   const { data } = route.params || {};
@@ -32,11 +32,27 @@ const Search = ({ route }) => {
     const day = String(date.getDate()).padStart(2, '0'); // Adding leading 0 for days < 10
     return `${year}-${month}-${day}`;
   };
+
+  const [marker, setMarker] = useState({
+    latitude: 33.64252919601249,
+    longitude: 73.07839628309011
+  })
+
+  const [markers, setMarkers] = useState([]);
+  const handleMapPress = (event) => {
+    const coordinate = event.nativeEvent.coordinate;
+    setMarkers([...markers, coordinate])
+    console.log(markers)
+    // console.log(coordinate)
+    // setMarker(coordinate);
+  }
   return (
-    <ScrollView>
+    <View>
+    
       <View style={styles.allControlsContainer}>
         <Allcontrols text={data}></Allcontrols>
       </View>
+      <ScrollView>
       <View style={styles.contentContainer}>
 
         <View style={styles.nameContainer}>
@@ -120,39 +136,91 @@ const Search = ({ route }) => {
               />
               <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
             </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+
+              <Checkbox
+
+              />
+              <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+
+              <Checkbox
+
+              />
+              <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
+            </View>
           </View>
         </View>
-        <View >
+        <View>
+
 
           <Text style={styles.text}>Capture Date</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+            <Text style={{ fontSize: 18, color: colors.dark }}>
+              {formatDate(date)}
+            </Text>
 
-          <Text style={{ fontSize: 18, marginVertical: 20, backgroundColor: colors.dark }}>
-            {formatDate(date)}
-          </Text>
-
-          <Icon
-            name="event"  
-            size={30} 
-            color={colors.primary}
-            onPress={showDatepicker} 
-            style={{ marginBottom: 20 }} 
-          />
-
-
-          {show && (
-            <DateTimePicker
-              testID="dateTimePicker"
-              value={date}
-              mode="date"
-              is24Hour={true}
-              display="default"
-              onChange={onChange}
+            <Icon
+              name="event"
+              size={30}
+              color={colors.primary}
+              onPress={showDatepicker}
             />
-          )}
+
+            {show && (
+              <DateTimePicker
+                testID="dateTimePicker"
+                value={date}
+                mode="date"
+                is24Hour={true}
+                display="default"
+                onChange={onChange}
+              />
+            )}
+          </View>
+          <View>
+            <Text style={styles.text}>Location</Text>
+            <MapView
+              style={{ width: '100%', height: 200, }}
+              initialRegion={{
+                latitude: 33.64252919601249,
+                longitude: 73.07839628309011,
+                latitudeDelta: 0.0922,
+                longitudeDelta: 0.0421,
+              }}
+              onPress={handleMapPress}
+            >
+              {
+                markers.map((marker) => (<Marker coordinate={marker} />))
+              }
+              {
+                markers.length > 2 &&
+                <Polygon
+                  coordinates={markers}
+                  fillColor="rgba(28,110,168,0.3)"
+                  strokeColor="blue"
+                  strokeWidth={2} />
+              }
+
+            </MapView>
+
+          </View>
+          <View style={styles.buttoncontainer}>
+            <Button
+              mode='contained'
+              style={styles.button}
+              labelStyle={styles.buttonText}>
+              Search
+            </Button>
+          </View>
         </View>
       </View>
 
     </ScrollView>
+    </View>
   );
 };
 
@@ -169,9 +237,11 @@ const styles = StyleSheet.create({
     right: 0,// Adjusts spacing between controls and the image container
   },
   contentContainer: {
-    // flex: 1, 
+     
     marginTop: 80,
-    padding: 10,
+    paddingtop: 30,
+    padding:10,
+    
   },
   nameContainer: {
     flexDirection: 'row', // To display the label and input next to each other
@@ -190,9 +260,23 @@ const styles = StyleSheet.create({
   chip: {
     backgroundColor: colors.primary, // Light grey background
     alignSelf: 'flex-start', // Make it adjust based on content width
-
+    borderColor: colors.dark,
+    borderWidth: 1
   },
-
+  buttoncontainer: {
+    flex: 1,
+    justifyContent: 'center', // Center the button vertically
+    alignItems: 'center', // Center the button horizontally
+    padding: 18,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    borderColor: colors.dark,
+    borderWidth: 1
+  },
+  buttonText: {
+    color: colors.dark // Replace with your colors.secondary value
+  },
 });
 
 export default Search;
