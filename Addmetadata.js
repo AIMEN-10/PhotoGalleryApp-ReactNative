@@ -3,12 +3,18 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Allcontrols from './Allcontrols'; 
 import Cameranavbar from './Cameranavbar';
 import Folders from './Folders';
+import Images from './Images';
 //import Bottomnavigation from './Bottomnavigation';
 import colors from './theme/colors';
 
 const Addmetadata = ({ route }) => {
   const { data } = route.params || {}; 
   console.log(data)
+  if (data=='Label')
+  {
+<Images/>
+console.log(data)
+  }
     return (
       <View>
         <View style={styles.allControlsContainer}>
@@ -16,7 +22,18 @@ const Addmetadata = ({ route }) => {
         </View>
       
       <View style={styles.imagescontainer}>
-      <Folders route={{ params: { data } }} />
+
+      {data === 'Label'? (
+        <View>
+          <Images route={{ params: { data } }}/>
+          {console.log(data)} 
+        </View>
+      ):(
+
+<Folders route={{ params: { data } }} />
+      )}
+
+      
       </View>
       
       <View style={styles.cameraNavbarContainer}>

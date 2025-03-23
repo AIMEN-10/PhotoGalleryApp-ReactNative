@@ -52,9 +52,9 @@ const Search = ({ route }) => {
       <View style={styles.allControlsContainer}>
         <Allcontrols text={data}></Allcontrols>
       </View>
-      <ScrollView>
+      
       <View style={styles.contentContainer}>
-
+<ScrollView>
         <View style={styles.nameContainer}>
           <Text style={styles.text}>Name</Text>
           <TextInput
@@ -137,7 +137,7 @@ const Search = ({ route }) => {
               <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
             </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
               <Checkbox
 
@@ -151,7 +151,7 @@ const Search = ({ route }) => {
 
               />
               <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
-            </View>
+            </View> */}
           </View>
         </View>
         <View>
@@ -217,9 +217,10 @@ const Search = ({ route }) => {
             </Button>
           </View>
         </View>
-      </View>
+     </ScrollView> 
+     </View>
 
-    </ScrollView>
+    
     </View>
   );
 };

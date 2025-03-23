@@ -10,14 +10,15 @@ const Images = ({ route, navigation }) => {
   // Handle image press (you can replace this with your actual navigation or action)
   const handleImagePress = (item) => {
     console.log("Navigating to ViewPhoto with item:", item);
-    navigation.navigate("ViewPhoto", { item }); // Pass 'item' properly to the next screen
+     navigation.navigate("ViewPhoto", { item }); // Pass 'item' properly to the next screen
+    //navigation.navigate("Editnavbar", { item });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.allControlsContainer}>
         {/* Allcontrols Component */}
-        <Allcontrols text={data} />
+        <Allcontrols text='Sir Afrasiab' />
       </View>
 
       <View style={styles.contentContainer}>
@@ -27,7 +28,25 @@ const Images = ({ route, navigation }) => {
           onPress={() => handleImagePress("item")} // Adjust to use the correct image data
         >
           <Image
-            source={require("./asset/1.jpeg")}
+            source={require("./asset/7.jpeg")}
+            style={styles.image}
+          />
+        </Pressable>
+        <Pressable
+          style={styles.imageContainer}
+          onPress={() => handleImagePress("item")} // Adjust to use the correct image data
+        >
+          <Image
+            source={require("./asset/2.jpeg")}
+            style={styles.image}
+          />
+        </Pressable>
+        <Pressable
+          style={styles.imageContainer}
+          onPress={() => handleImagePress("item")} // Adjust to use the correct image data
+        >
+          <Image
+            source={require("./asset/5.jpeg")}
             style={styles.image}
           />
         </Pressable>
@@ -54,6 +73,8 @@ const styles = StyleSheet.create({
      flex: 1, 
     marginTop:80,
     padding:10,
+    flexDirection:'row',
+    gap:20
   },
   imageContainer: {
     position:'relative',

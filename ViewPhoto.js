@@ -14,20 +14,20 @@ const ViewPhoto = ({ route ,navigation}) => {
   return (
     
       <SafeAreaView style={styles.container}>
-       <ScrollView contentContainerStyle={styles.scrollViewContainer}>
+       {/* <ScrollView contentContainerStyle={styles.scrollViewContainer}> */}
        <View style={styles.allControlsContainer}>
         {/* Allcontrols Component */}
-        <Allcontrols text="ABC" />
+        <Allcontrols text="Sir Afrasiab" />
       </View>
         <View style={styles.imageContainer}>
           {/* <Image source={{ uri: imageUrl }} style={styles.image} /> */}
            <Image
-                      source={require("./asset/1.jpeg")}
+                      source={require("./asset/7.jpeg")}
                       style={styles.image}
                     />
         </View>
 
-        </ScrollView>
+        {/* </ScrollView> */}
         {/* <View style={styles.navbarContainer}> */}
        
           <Editnavbar />

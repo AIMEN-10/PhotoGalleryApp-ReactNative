@@ -48,7 +48,7 @@ const Allcontrols = ({ text }) => {
               <Menu.Item
                 leadingIcon="sync"
                 title="Sync"
-                onPress={() => { /* Define Sync Action */ }}
+                onPress={() => {handleIconPress("Sync")}}
                 titleStyle={styles.menuText}
               />
 

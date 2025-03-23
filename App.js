@@ -8,6 +8,7 @@ import Images from './Images';
 import Folders from './Folders';
 import Editnavbar from './Editnavbar';
 import Search from './Search';
+import Sync from './Sync';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Editscreen from './Editscreen';
 import Login2 from './LogIn2';
@@ -72,10 +73,20 @@ const MainStack = () => (
       options={{ headerShown: false, lazy: true }} 
     />
     <Stack.Screen 
+      name="Sync" 
+      component={Sync} 
+      options={{ headerShown: false, lazy: true }} 
+    />
+    <Stack.Screen 
       name="Edit" 
       component={Editscreen} 
       options={{ headerShown: false }} 
     />
+     {/* <Stack.Screen 
+          name="Placeholder" 
+          component={PlaceholderScreen} 
+          options={{ headerShown: false }} 
+        /> */}
     
   </Stack.Navigator>
   </PaperProvider>
