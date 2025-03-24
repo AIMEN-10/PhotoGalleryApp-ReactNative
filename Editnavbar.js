@@ -1,22 +1,48 @@
 import React, { useState } from 'react';
+import { View, Text, TouchableOpacity ,Alert} from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import Editscreen from './Editscreen';
-import Detailsscreen from './Detailsscreen';
-import Deletescreen from './Deletescreen';
 import colors from './theme/colors';
 
 const Tab = createBottomTabNavigator();
 
+// Dummy static screen
+const StaticScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text style={{ fontSize: 20 }}>Same View Remains</Text>
+  </View>
+);
+
+const showConfirmationAlert = (action) => {
+  Alert.alert(
+    'Confirm Deletion',
+    `Are you sure you want to ${action}?`,
+    [
+      { text: 'Yes', onPress: () => console.log(`${action} Confirmed`) },
+      { text: 'No', style: 'cancel', onPress: () => console.log(`${action} Cancelled`) },
+    ],
+    { cancelable: true }
+  );
+};
+const showDeletePopup = () => {
+  Alert.alert(
+    'Delete Options',
+    'What do you want to delete?',
+    [
+      { text: 'Delete Image', onPress: () => {showConfirmationAlert('Delete Image');}},
+      { text: 'Delete Metadata', onPress: () => {showConfirmationAlert('Delete Metadata');} },
+      //{ text: 'Cancel', style: 'cancel' },
+    ],
+    { cancelable: true }
+  );
+};
 const Editnavbar = () => {
-  const [isInfoTabVisible, setIsInfoTabVisible] = useState(false); // Conditionally show the "Info" tab
+  const [activeTab, setActiveTab] = useState(null); // No tab selected by default
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarIconStyle: { width: 30, height: 30 },
-        tabBarLabelStyle: { fontSize: 15 },
         tabBarStyle: {
           height: 60,
           backgroundColor: colors.primary,
@@ -36,53 +62,59 @@ const Editnavbar = () => {
           left: 0,
           right: 0,
         },
-        tabBarActiveTintColor: colors.dark,
-        tabBarInactiveTintColor: colors.secondary,
       }}
     >
-      <Tab.Screen
-        name="Edit"
-        component={Editscreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="edit" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tab.Screen
-        name="Details"
-        component={Detailsscreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="list" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tab.Screen
-        name="Delete"
-        component={Deletescreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="delete" size={size} color={color} />
-          ),
-        }}
-      />
-
-      <Tab.Screen
-        name="Info"
-        component={Deletescreen} // You can replace this with another screen
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="info" size={size} color={color} />
-          ),
-          tabBarStyle: {
-            // Hides the "Info" tab without taking up space
-            display: isInfoTabVisible ? 'flex' : 'none', 
-          },
-        }}
-      />
+      {[
+        { name: 'Edit', icon: 'edit' },
+        { name: 'Details', icon: 'list' },
+        { name: 'Delete', icon: 'delete', isDelete: true },
+        { name: 'Info', icon: 'info' },
+      ].map(({ name, icon, isDelete })  => (
+        <Tab.Screen
+          key={name}
+          name={name}
+          component={StaticScreen}
+          options={{
+            tabBarButton: (props) => (
+              <TouchableOpacity
+                {...props}
+                onPress={() => {
+                  setActiveTab(name);
+                  if (isDelete) {
+                    showDeletePopup(); // Show popup when delete is pressed
+                  } else {
+                    onPress(); // Navigate normally
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 30,
+                  paddingTop: 5,
+                }}
+              >
+                {/* Icon with dynamic color */}
+                <Icon
+                  name={icon}
+                  size={30}
+                  color={activeTab === name ? colors.dark : colors.secondary} // Change icon color
+                />
+                {/* Label with dynamic color */}
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: activeTab === name ? colors.dark : colors.secondary, // Change label color
+                    marginTop: 2,
+                  }}
+                >
+                  {name}
+                </Text>
+              </TouchableOpacity>
+            ),
+          }}
+        />
+      ))}
     </Tab.Navigator>
   );
 };

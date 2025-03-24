@@ -7,15 +7,31 @@ import Allcontrols from './Allcontrols';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MapView, { Marker, Polygon, Polyline } from "react-native-maps";
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+import UUID from 'react-native-uuid';
 
 const Search = ({ route }) => {
   const { data } = route.params || {};
   const [name, setName] = useState('');
   const [visible, setVisible] = useState(true);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
+  const handleLocationSelect = (data, details) => {
+    const { lat, lng } = details.geometry.location;
+    
+    // Create a new marker with a unique ID
+    const newMarker = {
+      id: currentDateFormatted,  // Use UUID to generate a unique ID
+      latitude: lat,
+      longitude: lng,
+    };
 
+    // Add the marker to the map
+    setMarkers((prevMarkers) => [...prevMarkers, newMarker]);
+    setSelectedLocation({ latitude: lat, longitude: lng });
+  };
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShow(Platform.OS === 'ios' ? true : false); // Hide the picker on Android after selection
@@ -32,7 +48,7 @@ const Search = ({ route }) => {
     const day = String(date.getDate()).padStart(2, '0'); // Adding leading 0 for days < 10
     return `${year}-${month}-${day}`;
   };
-
+  const currentDateFormatted = formatDate(new Date());
   const [marker, setMarker] = useState({
     latitude: 33.64252919601249,
     longitude: 73.07839628309011
@@ -48,96 +64,99 @@ const Search = ({ route }) => {
   }
   return (
     <View>
-    
+
       <View style={styles.allControlsContainer}>
         <Allcontrols text={data}></Allcontrols>
       </View>
-      
+
       <View style={styles.contentContainer}>
-<ScrollView>
-        <View style={styles.nameContainer}>
-          <Text style={styles.text}>Name</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={(text) => setName(text)} // Update state on text change
-            placeholder="Enter name"
-            placeholderTextColor={colors.grey}
-          />
-          <Icon name="check-circle" size={30} color={colors.primary} />
-        </View>
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} // Hides scroll bar
-          contentContainerStyle={{ flexDirection: 'row', gap: 10, paddingHorizontal: 10 }} // ✅ Proper row layout
-        >
-          {visible && (
-            <Chip
-              onPress={() => console.log('Pressed')}
-              onClose={() => {
-                setVisible(false);
-                console.log('Chip Closed');
-              }}
-              style={styles.chip}
-              textStyle={{ color: colors.secondary }}  // Text color
-              closeIconColor={colors.secondary || 'black'} // Custom color for close icon (Red)
-            >
-              Aimen
-            </Chip>
-          )}
-          <Chip onPress={() => console.log('Pressed')}
-            onClose={() => console.log('Chip Closed')}
-            style={styles.chip}
-          >Eman</Chip>
-          <Chip onPress={() => console.log('Pressed')}
-            onClose={() => console.log('Chip Closed')}
-            style={styles.chip}
-          >Eman</Chip>
-          <Chip onPress={() => console.log('Pressed')}
-            onClose={() => console.log('Chip Closed')}
-            style={styles.chip}
-          >Eman</Chip>
-          <Chip onPress={() => console.log('Pressed')}
-            onClose={() => console.log('Chip Closed')}
-            style={styles.chip}
-          >Eman</Chip>
-        </ScrollView>
-        <View >
-          <Text style={styles.text}>Gender</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-
-            <Checkbox
-
+        <ScrollView>
+          <View style={styles.nameContainer}>
+            <Text style={styles.text}>Name</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={(text) => setName(text)} // Update state on text change
+              placeholder="Enter name"
+              placeholderTextColor={colors.grey}
             />
-            <Text style={{ fontSize: 18, color: colors.dark }}>Male</Text>
-
+            <Icon name="check-circle" size={30} color={colors.primary} />
+          </View>
+          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} // Hides scroll bar
+            contentContainerStyle={{ flexDirection: 'row', gap: 10, paddingHorizontal: 10 }} // ✅ Proper row layout
+          >
+            {visible && (
+              <Chip
+                onPress={() => console.log('Pressed')}
+                onClose={() => {
+                  setVisible(false);
+                  console.log('Chip Closed');
+                }}
+                style={styles.chip}
+                textStyle={{ color: colors.secondary }}  // Text color
+                closeIconColor={colors.secondary || 'black'} // Custom color for close icon (Red)
+              >
+                Aimen
+              </Chip>
+            )}
+            <Chip onPress={() => console.log('Pressed')}
+              onClose={() => console.log('Chip Closed')}
+              style={styles.chip}
+              textStyle={{ color: colors.secondary }}
+            >Eman</Chip>
+            <Chip onPress={() => console.log('Pressed')}
+              onClose={() => console.log('Chip Closed')}
+              style={styles.chip}
+              textStyle={{ color: colors.secondary }}
+            >Ali</Chip>
+            <Chip onPress={() => console.log('Pressed')}
+              onClose={() => console.log('Chip Closed')}
+              style={styles.chip}
+              textStyle={{ color: colors.secondary }}
+            >Iqra</Chip>
+            <Chip onPress={() => console.log('Pressed')}
+              onClose={() => console.log('Chip Closed')}
+              style={styles.chip}
+            >Eman</Chip>
+          </ScrollView>
+          <View >
+            <Text style={styles.text}>Gender</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
               <Checkbox
 
               />
-              <Text style={{ fontSize: 18, color: colors.dark }}>Female</Text>
+              <Text style={{ fontSize: 18, color: colors.dark }}>Male</Text>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+
+                <Checkbox
+
+                />
+                <Text style={{ fontSize: 18, color: colors.dark }}>Female</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View >
+          <View >
 
-          <Text style={styles.text}>Events</Text>
-          <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Checkbox
+            <Text style={styles.text}>Events</Text>
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Checkbox
 
-              />
-              <Text style={{ fontSize: 18, color: colors.dark }}>Birthday</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                />
+                <Text style={{ fontSize: 18, color: colors.dark }}>Birthday</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
-              <Checkbox
+                <Checkbox
 
-              />
-              <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
-            </View>
+                />
+                <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
+              </View>
 
-            {/* <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {/* <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
               <Checkbox
 
@@ -152,38 +171,38 @@ const Search = ({ route }) => {
               />
               <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
             </View> */}
-          </View>
-        </View>
-        <View>
-
-
-          <Text style={styles.text}>Capture Date</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
-            <Text style={{ fontSize: 18, color: colors.dark }}>
-              {formatDate(date)}
-            </Text>
-
-            <Icon
-              name="event"
-              size={30}
-              color={colors.primary}
-              onPress={showDatepicker}
-            />
-
-            {show && (
-              <DateTimePicker
-                testID="dateTimePicker"
-                value={date}
-                mode="date"
-                is24Hour={true}
-                display="default"
-                onChange={onChange}
-              />
-            )}
+            </View>
           </View>
           <View>
-            <Text style={styles.text}>Location</Text>
-            <MapView
+
+
+            <Text style={styles.text}>Capture Date</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+              <Text style={{ fontSize: 18, color: colors.dark }}>
+                {formatDate(date)}
+              </Text>
+
+              <Icon
+                name="event"
+                size={30}
+                color={colors.primary}
+                onPress={showDatepicker}
+              />
+
+              {show && (
+                <DateTimePicker
+                  testID="dateTimePicker"
+                  value={date}
+                  mode="date"
+                  is24Hour={true}
+                  display="default"
+                  onChange={onChange}
+                />
+              )}
+            </View>
+            <View>
+              <Text style={styles.text}>Location</Text>
+              <MapView
               style={{ width: '100%', height: 200, }}
               initialRegion={{
                 latitude: 33.64252919601249,
@@ -206,21 +225,57 @@ const Search = ({ route }) => {
               }
 
             </MapView>
+               {/* <GooglePlacesAutocomplete
+            placeholder="Search for a location"
+            onPress={handleLocationSelect}
+            fetchDetails={true} // To get detailed information including lat/lng
+            enablePoweredByContainer={false}  // Disable the powered by google label
+            styles={{
+              container: { flex: 1, paddingHorizontal: 10 },
+              textInput: {
+                height: 40,
+                backgroundColor: '#fff',
+                borderRadius: 20,
+                paddingLeft: 10,
+                fontSize: 16,
+              },
+            }}
+            />
 
+            
+            <MapView
+          style={styles.mapView}
+          initialRegion={{
+            latitude: 33.64252919601249,
+            longitude: 73.07839628309011,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        >
+          {markers.map((marker) => (
+            <Marker
+              key={marker.id} // Use UUID for unique key
+              coordinate={{
+                latitude: marker.latitude,
+                longitude: marker.longitude,
+              }}
+            />
+          ))}
+            </MapView> */}
+            </View>
+            <View style={styles.buttoncontainer}>
+              <Button
+                mode='contained'
+                style={styles.button}
+                labelStyle={styles.buttonText}>
+                Search
+              </Button>
+            </View>
           </View>
-          <View style={styles.buttoncontainer}>
-            <Button
-              mode='contained'
-              style={styles.button}
-              labelStyle={styles.buttonText}>
-              Search
-            </Button>
-          </View>
-        </View>
-     </ScrollView> 
-     </View>
+        </ScrollView>
+      </View>
 
-    
+
     </View>
   );
 };
@@ -238,11 +293,11 @@ const styles = StyleSheet.create({
     right: 0,// Adjusts spacing between controls and the image container
   },
   contentContainer: {
-     
+
     marginTop: 80,
     paddingtop: 30,
-    padding:10,
-    
+    padding: 10,
+
   },
   nameContainer: {
     flexDirection: 'row', // To display the label and input next to each other
