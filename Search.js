@@ -201,7 +201,16 @@ const Search = ({ route }) => {
               )}
             </View>
             <View>
+            <View style={styles.nameContainer}>
               <Text style={styles.text}>Location</Text>
+              <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={(text) => setName(text)} // Update state on text change
+              placeholder="Enter location"
+              placeholderTextColor={colors.grey}
+            />
+            </View>
               <MapView
               style={{ width: '100%', height: 200, }}
               initialRegion={{

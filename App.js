@@ -26,7 +26,7 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 import { Provider as PaperProvider } from 'react-native-paper'; 
 import { enableScreens } from 'react-native-screens';
-// enableScreens();
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 
 
@@ -97,10 +97,12 @@ const App = () => {
 
   
   return (
+    <GestureHandlerRootView>
     <NavigationContainer >
   <MainStack />
   
 </NavigationContainer>
+</GestureHandlerRootView>
 
 
     // <NavigationContainer>

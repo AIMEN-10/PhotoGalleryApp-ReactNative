@@ -24,15 +24,31 @@ const Folders = ({ route }) => {
                     >
 
                         <Image
-                            source={require("./asset/1.jpeg")}
+                            source={require("./asset/4.jpeg")}
                             style={styles.image}
                         />
 
-                        <Text style={styles.imageName}>2023-12-2</Text>
+                        <Text style={styles.imageName}>Biit</Text>
                     </TouchableOpacity>
 
 
 
+
+                    
+                     <TouchableOpacity
+                        onPress={() => handleNavigation("path")}
+                        activeOpacity={0.7}
+                        style={[styles.folderborder, { borderColor: colors.primary }]}
+
+                    >
+                        <Image
+                            source={require("./asset/8.jpeg")}
+                            style={styles.image}
+                        />
+
+                        <Text style={styles.imageName}>Lake View</Text>
+
+                    </TouchableOpacity>
 
                     <TouchableOpacity
                         onPress={() => handleNavigation("path")}
@@ -43,28 +59,14 @@ const Folders = ({ route }) => {
 
                         {/* <View style={[styles.folderborder, { borderColor: colors.primary }]}> */}
                         <Image
-                            source={require("./asset/6.jpeg")}
+                            source={require("./asset/3.jpeg")}
                             style={styles.image}
                         />
 
-                        <Text style={styles.imageName}>2024-3-5</Text>
+                        <Text style={styles.imageName}>Park</Text>
                         {/* </View> */}
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-                        <Image
-                            source={require("./asset/9.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>2025-7-2</Text>
-
-                    </TouchableOpacity>
-                     <TouchableOpacity
+                    {/* <TouchableOpacity
                         onPress={() => handleNavigation("path")}
                         activeOpacity={0.7}
                         style={[styles.folderborder, { borderColor: colors.primary }]}
@@ -77,7 +79,7 @@ const Folders = ({ route }) => {
 
                         <Text style={styles.imageName}>2025-12-1</Text>
 
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                     {/*<TouchableOpacity
                         onPress={() => handleNavigation("path")}
                         activeOpacity={0.7}
