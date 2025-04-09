@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Modalize } from 'react-native-modalize';
 import { ScrollView } from 'react-native-gesture-handler';
 import colors from './theme/colors'; // Adjust path accordingly
+import Editscreen from './Editscreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -39,35 +40,57 @@ const showDeletePopup = () => {
 };
 
 // ✅ Function that returns Modalize component
-const renderInfoModal = (infoSheetRef) => (
+const renderInfoModal = (infoSheetRef, modalData) => (
   <Modalize
     ref={infoSheetRef}
     snapPoint={400}
     modalHeight={600}
     handleStyle={{ backgroundColor: colors.primary }}
-    modalStyle={{ borderTopLeftRadius: 20, borderTopRightRadius: 20,borderColor:colors.primary }}
+    modalStyle={{ borderTopLeftRadius: 20, borderTopRightRadius: 20,borderColor:colors.primary,borderwidth:2 }}
   >
     <ScrollView style={{ padding: 20 }}>
-      <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.dark}}>Info </Text>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.dark}}>
+      {modalData?.type === 'info'
+      ? 'Info'
+      : modalData?.type === 'edit'
+      ? 'Edit'  // Display the 'Edit' heading (or customize this)
+      : modalData?.type === 'details'
+      ? 'Details'
+      : 'Modal'} </Text>
       
+      {modalData?.type === 'edit' && modalData.content && (
+    <modalData.content />
+  )}
     </ScrollView>
   </Modalize>
 );
+// const handleDetailsPress = () => {
+//   setModalData({ type: 'details', content: 'This is details content.' });
+//   infoSheetRef.current?.open();
+// };
 
+// const handleEditPress = () => {
+//   setModalData({ type: 'edit', content: <Editscreen/> });
+//   infoSheetRef.current?.open();
+// };
+// const handleInfoPress = () => {
+//   setModalData({ type: 'info', content: 'This is info-related content.' });
+//   infoSheetRef.current?.open();
+// };
 const Editnavbar = () => {
+  const [modalData, setModalData] = useState(null);
+
   const [activeTab, setActiveTab] = useState(null);
   const infoSheetRef = useRef(null);
 
-  const handleInfoPress = () => {
-    infoSheetRef.current?.open();
-  };
   
   
 
   return (
     <>
       {/* ✅ Call the reusable function here */}
-      {renderInfoModal(infoSheetRef)}
+      {renderInfoModal(infoSheetRef, modalData)}
+
 
       {/* Bottom Tab Navigation */}
       <Tab.Navigator
@@ -114,7 +137,14 @@ const Editnavbar = () => {
                     if (isDelete) {
                       showDeletePopup();
                     } else if (name === 'Info') {
-                      handleInfoPress();
+                      setModalData({ type: 'info', content: 'Info-related content here.' });
+                      infoSheetRef.current?.open();
+                    }else if (name === 'Edit') {
+                      setModalData({ type: 'edit', content: Editscreen });
+                      infoSheetRef.current?.open();
+                    } else if (name === 'Details') {
+                      setModalData({ type: 'details', content: 'Details content here.' });
+                      infoSheetRef.current?.open();
                     } else {
                       props.onPress?.(event); // ✅ Call the original event handler
                     }

@@ -4,7 +4,7 @@ import { TextInput } from 'react-native-paper';
 import { SelectList } from 'react-native-dropdown-select-list'; 
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
+import colors from './theme/colors';
 
 const Editscreen = () => {
   const [selectedEvent, setSelectedEvent] = useState(null); // Store selected event (key)
@@ -15,26 +15,26 @@ const Editscreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false); // Control visibility of the date picker
 
   // Fetch events data from API
-  useEffect(() => {
-      fetch(baseUrl + 'api/Image/getAllEvents') // Replace with your actual API endpoint
-        .then(response => response.json())
-        .then(data => {
-          if (data.length > 0) {
-            // Prepare data for SelectList
-            const eventData = data.map(event => ({
-              key: event.id.toString(), // Unique key for each event
-              value: event.name, // Display the event name
-            }));
-            setEventData(eventData); // Set the events for the dropdown
-          } else {
-            console.log('No events found!');
-          }
-          //console.log(eventData)
-        })
-        .catch(error => {
-          console.error('Error fetching events:', error);
-        });
-    }, []);
+  // useEffect(() => {
+  //     fetch(baseUrl + 'api/Image/getAllEvents') // Replace with your actual API endpoint
+  //       .then(response => response.json())
+  //       .then(data => {
+  //         if (data.length > 0) {
+  //           // Prepare data for SelectList
+  //           const eventData = data.map(event => ({
+  //             key: event.id.toString(), // Unique key for each event
+  //             value: event.name, // Display the event name
+  //           }));
+  //           setEventData(eventData); // Set the events for the dropdown
+  //         } else {
+  //           console.log('No events found!');
+  //         }
+  //         //console.log(eventData)
+  //       })
+  //       .catch(error => {
+  //         console.error('Error fetching events:', error);
+  //       });
+  //   }, []);
   
   
   
@@ -95,16 +95,13 @@ const Editscreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Top Half - Image Section */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: 'https://via.placeholder.com/350' }} style={styles.image} />
-        </View>
+        
 
         {/* Bottom Half - Event Form Section */}
         <View style={styles.formContainer}>
           <Text style={styles.label}>Event</Text>
 
-          {/* Event Input (Dropdown) */}
+          
           <SelectList
                   data={eventData} // Items to be displayed in the dropdown
                   setSelected={setSelectedEvent} // Update the selected event
@@ -116,14 +113,7 @@ const Editscreen = () => {
                 />
 
           <Text style={styles.label}>Event Date</Text>
-          {/* <TextInput
-            style={styles.detailValue}
-            value={eventDate}
-            onChangeText={setEventDate}
-            placeholder="Enter Event Date"
-            placeholderTextColor="#aaa"
-            underlineColor="#fff"
-          /> */}
+         
 <TouchableOpacity onPress={showDatepicker} style={styles.datePickerButton}>
         <Text style={styles.datePickerButtonText}>
           {eventDate ? eventDate.toLocaleDateString() : 'Select Date'}
@@ -165,22 +155,22 @@ const Editscreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f5f5f5', // Light background color for the safe area
+    backgroundColor: colors.dark, // Light background color for the safe area
   },
   container: {
-    flex: 1,
-    flexDirection: 'column',
+    //flex: 1,
+    //flexDirection: 'column',
   },
-  imageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  image: {
-    width: '100%', // Image should take full width
-    height: '50%', // Image takes up the top half of the screen
-    resizeMode: 'cover', // Ensure image scales correctly
-  },
+  // imageContainer: {
+  //   flex: 1,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+  // image: {
+  //   width: '100%', // Image should take full width
+  //   height: '50%', // Image takes up the top half of the screen
+  //   resizeMode: 'cover', // Ensure image scales correctly
+  // },
   formContainer: {
     flex: 1,
     justifyContent: 'flex-start',
@@ -191,7 +181,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   label: {
-    color: '#fff', // White color for labels
+    color: colors.dark, // White color for labels
     fontSize: 14,
     marginBottom: 5,
   },
