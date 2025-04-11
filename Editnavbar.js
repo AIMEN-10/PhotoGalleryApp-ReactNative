@@ -128,11 +128,12 @@ const Editnavbar = () => {
             name={name}
             component={StaticScreen}
             options={{
-              tabBarButton: (props) => (
-                <TouchableOpacity
-                  {...props}
-                  onPress={(event) => {
-                    event.persist(); 
+              tabBarButton: ({ onPress, ...rest }) => (
+                <TouchableOpacity 
+
+                {...rest}
+                  onPress={() => {
+                   
                     setActiveTab(name);
                     if (isDelete) {
                       showDeletePopup();
@@ -145,8 +146,9 @@ const Editnavbar = () => {
                     } else if (name === 'Details') {
                       setModalData({ type: 'details', content: 'Details content here.' });
                       infoSheetRef.current?.open();
-                    } else {
-                      props.onPress?.(event); // ✅ Call the original event handler
+                    } 
+                    else {
+                      onPress?.(); // ✅ Call the default onPress cleanly
                     }
                   }}
                   style={{

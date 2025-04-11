@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
 import { TextInput } from 'react-native-paper';
-import { SelectList } from 'react-native-dropdown-select-list'; 
+import { SelectList } from 'react-native-dropdown-select-list';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import colors from './theme/colors';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+
 
 const Editscreen = () => {
+  const [name, setname] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null); // Store selected event (key)
-  const [eventData, setEventData] = useState([]); 
+  const [eventData, setEventData] = useState([]);
   //const [eventDate, setEventDate] = useState(''); // Store event date
   const [location, setLocation] = useState(''); // Store location
   const [eventDate, setEventDate] = useState(new Date()); // Store the selected date
@@ -35,20 +38,20 @@ const Editscreen = () => {
   //         console.error('Error fetching events:', error);
   //       });
   //   }, []);
-  
-  
-  
-  
-    const onChange = (event, selectedDate) => {
-      const currentDate = selectedDate || eventDate;
-      setShowDatePicker(false); // Automatically hide the picker after selection on Android
-      setEventDate(currentDate);
-    };
-  
-    // Function to show date picker
-    const showDatepicker = () => {
-      setShowDatePicker(true); // Show the date picker when the user clicks the button
-    };
+
+
+
+
+  const onChange = (event, selectedDate) => {
+    const currentDate = selectedDate || eventDate;
+    setShowDatePicker(false); // Automatically hide the picker after selection on Android
+    setEventDate(currentDate);
+  };
+
+  // Function to show date picker
+  const showDatepicker = () => {
+    setShowDatePicker(true); // Show the date picker when the user clicks the button
+  };
   // Handle Save action
   const handleSave = async () => {
     console.log('Saved:', { selectedEvent, eventDate, location });
@@ -56,17 +59,17 @@ const Editscreen = () => {
     try {
       // Prepare the formatted date as 'YYYY-MM-DD'
       const formattedDate = eventDate.toISOString().split('T')[0];
-  
+
       // Prepare the contact data to send to the API (this is just the data you want to send)
       const contactData = {
         selectedEvent,
         formattedDate,
         location
       };
-  
+
       // Build the URL with query parameters (as per your server-side expectations)
       const url = `${baseUrl}api/Image/EditImageData?imageId=${imageId}&EventName=${encodeURIComponent(selectedEvent)}&EventDate=${encodeURIComponent(formattedDate)}&Location=${encodeURIComponent(location)}`;
-  
+
       // Make the POST request with fetch
       const res = await fetch(url, {
         method: 'POST',
@@ -74,7 +77,7 @@ const Editscreen = () => {
         // If you want to send the contact data as JSON in the body, uncomment the next line
         // body: JSON.stringify(contactData),
       });
-  
+
       // Check if the response is ok (status code 200-299)
       if (!res.ok) {
         // If the response is not successful, attempt to read it as plain text
@@ -90,58 +93,81 @@ const Editscreen = () => {
       console.error('Error during fetch:', error);
     }
   };
-  
+
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        
+    <SafeAreaView >
+      <View >
+
 
         {/* Bottom Half - Event Form Section */}
-        <View style={styles.formContainer}>
+        <View >
+          <View style={{position: 'relative', left: '20%'}}>
+            
+          <Image
+  source={require("./asset/8.jpeg")}
+  style={{ height: 60, width: "20%" }}  // Correctly set the height and width
+/>
+
+          </View>
+          <View style={styles.nameContainer}>
+            <Text style={styles.label}>Name</Text>
+            <TextInput
+              style={styles.inputname}
+              value={name}
+              onChangeText={(text) => setname(text)} // Update state on text change
+              placeholder="Enter name"
+              placeholderTextColor={colors.grey}
+            />
+            <Text style={styles.label}>More...</Text>
+            {/* <Icon name="check-circle" size={30} color={colors.primary} /> */}
+          </View>
           <Text style={styles.label}>Event</Text>
 
-          
-          <SelectList
-                  data={eventData} // Items to be displayed in the dropdown
-                  setSelected={setSelectedEvent} // Update the selected event
-                  placeholder="Select an event"
-                  save="value" // Save the selected event value
-                  boxStyles={styles.dropdown} // Style for the dropdown box
-                  inputStyles={[styles.input, { color: 'black' }]} // Make the text color black
-                  searchInputStyle={{ color: 'black' }}
-                />
+          <View style={{ flexDirection: 'row' }}>
+            <View style={{ flex: 1, width: '100%' }}>
+              <SelectList
+                data={eventData}
+                setSelected={setSelectedEvent}
+                placeholder="Select an event"
+                save="value"
+                boxStyles={styles.dropdown}
+                inputStyles={[styles.input, { color: 'black' }]}
+                searchInputStyle={{ color: 'black' }}
+              />
+            </View>
+            <Icon name="add-circle" size={24} color={colors.primary} style={{ marginTop: 10 }} />
+          </View>
 
           <Text style={styles.label}>Event Date</Text>
-         
-<TouchableOpacity onPress={showDatepicker} style={styles.datePickerButton}>
-        <Text style={styles.datePickerButtonText}>
-          {eventDate ? eventDate.toLocaleDateString() : 'Select Date'}
-        </Text>
-      </TouchableOpacity>
 
-      {/* Conditionally render DateTimePicker */}
-      {showDatePicker && (
-        <DateTimePicker
-          testID="dateTimePicker"
-          value={eventDate}
-          mode="date"
-          is24Hour={true}
-          display="default"
-          onChange={onChange}
-        />
-      )}
-      
+          <TouchableOpacity onPress={showDatepicker} style={styles.datePickerButton}>
+            <Text style={styles.datePickerButtonText}>
+              {eventDate ? eventDate.toLocaleDateString() : 'Select Date'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Conditionally render DateTimePicker */}
+          {showDatePicker && (
+            <DateTimePicker
+              testID="dateTimePicker"
+              value={eventDate}
+              mode="date"
+              is24Hour={true}
+              display="default"
+              onChange={onChange}
+            />
+          )}
+<View style={styles.nameContainer}>
           <Text style={styles.label}>Location</Text>
           <TextInput
-            style={styles.detailValue}
-            value={location}
-            onChangeText={setLocation}
-            placeholder="Enter Location"
-            placeholderTextColor="#aaa"
-            underlineColor="#fff"
-          />
-
+              style={styles.inputname}
+              value={name}
+              onChangeText={(text) => setlocation(text)} // Update state on text change
+              placeholder="Enter name"
+              placeholderTextColor={colors.grey}
+            />
+</View>
           {/* Save Button */}
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Text style={styles.saveButtonText}>Save</Text>
@@ -153,33 +179,27 @@ const Editscreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+
+
+  nameContainer: {
+    flexDirection: 'row', // To display the label and input next to each other
+    alignItems: 'center', // Vertically align the text and input
+    marginVertical: 15, // Space between sections
+    gap: 20
+  },
+  inputname: {
+    height:10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.dark, 
+    size:1,
     flex: 1,
-    backgroundColor: colors.dark, // Light background color for the safe area
+    fontSize: 15,
+    backgroundColor: colors.secondary,
+    color: 'white',
+    
   },
-  container: {
-    //flex: 1,
-    //flexDirection: 'column',
-  },
-  // imageContainer: {
-  //   flex: 1,
-  //   justifyContent: 'center',
-  //   alignItems: 'center',
-  // },
-  // image: {
-  //   width: '100%', // Image should take full width
-  //   height: '50%', // Image takes up the top half of the screen
-  //   resizeMode: 'cover', // Ensure image scales correctly
-  // },
-  formContainer: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    padding: 20,
-    backgroundColor: '#0D6068', // Form container color
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 40,
-  },
+  
+
   label: {
     color: colors.dark, // White color for labels
     fontSize: 14,
@@ -215,11 +235,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', // White background for the dropdown
     borderRadius: 5,
     marginBottom: 15,
-    textDecorationColor:'black'
+    textDecorationColor: 'black'
   },
   input: {
-    fontSize: 14, // Adjust font size for input text
-    padding: 10,
+    fontSize: 15, // Adjust font size for input text
+
   },
 });
 
