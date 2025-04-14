@@ -13,7 +13,7 @@ const Addmetadata = ({ route }) => {
   if (data=='Label')
   {
 <Images/>
-console.log(data)
+
   }
     return (
       <View>
@@ -26,7 +26,7 @@ console.log(data)
       {data === 'Label'? (
         <View>
           <Images route={{ params: { data } }}/>
-          {console.log(data)} 
+           
         </View>
       ):(
 

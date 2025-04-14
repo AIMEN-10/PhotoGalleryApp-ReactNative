@@ -46,12 +46,18 @@ const MainStack = () => (
       component={Editnavbar} 
       options={{ headerShown: false }} 
     />
+     <Stack.Screen 
+      name="ViewPhoto" 
+      component={ViewPhoto} 
+      options={{ headerShown: false, lazy: true }} 
+    />
     <Stack.Screen 
     
       name="Gallery" 
       component={Addmetadata} 
       options={{ headerShown: false }} 
     />
+    
     <Stack.Screen 
       name="Folders" 
       component={Folders} 
@@ -62,11 +68,7 @@ const MainStack = () => (
       component={Images} 
       options={{ headerShown: false , lazy: true }} 
     />
-    <Stack.Screen 
-      name="ViewPhoto" 
-      component={ViewPhoto} 
-      options={{ headerShown: false, lazy: true }} 
-    />
+   
     <Stack.Screen 
       name="Search" 
       component={Search} 

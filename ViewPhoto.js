@@ -1,28 +1,29 @@
 import React from 'react';
-import { View, Image, StyleSheet, SafeAreaView, Text, ScrollView } from 'react-native';
+import { View, Image, StyleSheet, SafeAreaView, Text, ScrollView ,Dimensions} from 'react-native';
 import Editnavbar from './Editnavbar';
 import Allcontrols from './Allcontrols';
-
+const { width, height } = Dimensions.get('window');
 const ViewPhoto = ({ route, navigation }) => {
-  // const { item,image } = route.params;
+   const { item } = route.params;
 
   // Get the `path` from `item`
   // const { path } = item;
   // console.log(path);
   // const imageUrl = baseUrl + item.path.replace('~', '');
+  
 
   return (
 
     <SafeAreaView >
 
-      <View style={styles.allControlsContainer}>
+      {/* <View style={styles.allControlsContainer}>
 
         <Allcontrols text="Sir Afrasiab" />
-      </View>
+      </View> */}
       <View style={styles.imageContainer}>
         {/* <Image source={{ uri: imageUrl }} style={styles.image} /> */}
          <Image
-          source={require("./asset/7.jpeg")}
+          source={{ uri: item.node.image.uri }}
           style={styles.image}
         />
       </View>
@@ -44,17 +45,16 @@ const styles = StyleSheet.create({
   imageContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 50,
+    //marginTop: 50,
     paddingHorizontal: 20,
     marginBottom: 20,  // Adding margin at the bottom of the image
     //backgroundColor:'red'
   },
   image: {
-    
-    width: '100%',
-    height: 650,  // You can adjust based on your design
-    resizeMode:'contain',
-
+      width: width,
+      height: height,
+      resizeMode: 'cover', // or 'contain' depending on what you want
+   
   },
   allControlsContainer: {
     position: 'absolute',  // This makes the navbar float above other elements
