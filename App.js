@@ -1,5 +1,5 @@
-import React from 'react';
-import {View,Image} from 'react-native';
+import React, { useEffect } from 'react';
+import {View,Image, PermissionsAndroid, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Addmetadata from './Addmetadata';
@@ -95,6 +95,57 @@ const App = () => {
   const Stack = createNativeStackNavigator();
   global.baseUrl = 'http://192.168.43.155/MapcourseApi/';
 
+  // useEffect(() => {
+  //   requestImagePermission();
+  // }, []);
+  
+  // const requestImagePermission = async () => {
+  //   try {
+  //     if (Platform.OS === 'android') {
+  //       if (Platform.Version >= 33) {
+  //         const hasImages = await PermissionsAndroid.check(
+  //           PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+  //         );
+  
+  //         if (!hasImages) {
+  //           const granted = await PermissionsAndroid.request(
+  //             PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+  //           );
+  
+  //           if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+  //             console.log('Image permission granted');
+  //           } else {
+  //             console.log('Image permission denied');
+  //           }
+  //         } else {
+  //           console.log('Image permission already granted');
+  //         }
+  //       } else {
+  //         // Android 12 and below
+  //         const hasStorage = await PermissionsAndroid.check(
+  //           PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
+  //         );
+  
+  //         if (!hasStorage) {
+  //           const granted = await PermissionsAndroid.request(
+  //             PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
+  //           );
+  
+  //           if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+  //             console.log('Storage permission granted');
+  //           } else {
+  //             console.log('Storage permission denied');
+  //           }
+  //         } else {
+  //           console.log('Storage permission already granted');
+  //         }
+  //       }
+  //     }
+  //   } catch (err) {
+  //     console.warn('Permission error:', err);
+  //   }
+  // };
+ 
   
   return (
     <GestureHandlerRootView>
