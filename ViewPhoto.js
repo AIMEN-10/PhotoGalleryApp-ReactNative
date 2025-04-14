@@ -4,11 +4,11 @@ import Editnavbar from './Editnavbar';
 import Allcontrols from './Allcontrols';
 const { width, height } = Dimensions.get('window');
 const ViewPhoto = ({ route, navigation }) => {
-   const { item } = route.params;
+   const { item,data } = route.params;
 
   // Get the `path` from `item`
   // const { path } = item;
-  // console.log(path);
+  console.log(data);
   // const imageUrl = baseUrl + item.path.replace('~', '');
   
 
@@ -51,9 +51,10 @@ const styles = StyleSheet.create({
     //backgroundColor:'red'
   },
   image: {
-      width: width,
-      height: height,
-      resizeMode: 'cover', // or 'contain' depending on what you want
+    width: width,
+    height: height-22,
+    resizeMode: 'cover',
+    
    
   },
   allControlsContainer: {

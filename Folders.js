@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, ScrollView, Image, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
@@ -8,16 +8,16 @@ const Folders = ({ route }) => {
     const navigation = useNavigation();
 
     const handleNavigation = () => {
-        navigation.navigate("Images", { data: "Label" });
+        navigation.navigate("Images", { data: labelname});
     };
-
+const [labelname,setlabelname]=useState("Biit");
     return (
         <View style={styles.container}>
             <ScrollView >
                 <View style={styles.grid}>
 
                     <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
+                        onPress={() => handleNavigation("Biit")}
                         activeOpacity={0.7}
                         style={[styles.folderborder, { borderColor: colors.primary }]}
 
@@ -28,7 +28,8 @@ const Folders = ({ route }) => {
                             style={styles.image}
                         />
 
-                        <Text style={styles.imageName}>Biit</Text>
+                        <Text style={styles.imageName}
+                        >Biit</Text>
                     </TouchableOpacity>
 
 

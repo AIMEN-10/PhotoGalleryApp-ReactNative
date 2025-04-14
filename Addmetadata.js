@@ -12,22 +12,22 @@ const Addmetadata = ({ route }) => {
   console.log(data)
   if (data=='Label')
   {
-<Images/>
-
+<Images route={{ params: { data } }}/>
+// console.log(data)
   }
     return (
-      <View>
+      <View style={styles.container}>
         <View style={styles.allControlsContainer}>
         <Allcontrols text={data}/>
         </View>
       
-      <View style={styles.imagescontainer}>
+      <View style={styles.imagesContainer}>
 
       {data === 'Label'? (
-        <View>
+       
           <Images route={{ params: { data } }}/>
            
-        </View>
+       
       ):(
 
 <Folders route={{ params: { data } }} />
@@ -45,27 +45,31 @@ const Addmetadata = ({ route }) => {
     };
     const styles = StyleSheet.create({
       container: {
-        // flex: 1,
-        // paddingTop: 50, // Adjust if needed for padding on top
+         flex: 1,
+       
       },
-      imagescontainer:{
-position:'relative'
+      imagesContainer: {
+        flex:1,
+        marginBottom: 0, 
+        
       },
+      
       cameraNavbarContainer: {
-        position: 'absolute',  // This makes the navbar float above other elements
+        position: 'absolute',  
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 999,  // Very high zIndex to make sure it's in the foreground
-        //backgroundColor: 'rgba(255, 255, 255, 0.8)',  // Optional: slightly transparent background to make it stand out
+        zIndex: 999,  
+        
       },
       allControlsContainer: {
-        position: 'absolute',  // This makes the navbar float above other elements
+        position: 'absolute',  
         top: 0,
         left: 0,
         right: 0,
-        //zIndex: 999,// This pushes AllControls down so they don't overlap with the navbar
+        
       },
+      
      
     });
 

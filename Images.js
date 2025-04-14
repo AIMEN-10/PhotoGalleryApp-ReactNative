@@ -1,25 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { View, Image, Text, StyleSheet, Pressable, FlatList,PermissionsAndroid, Platform} from 'react-native';
+import { View, Image, Text, StyleSheet, Pressable, PermissionsAndroid, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
-import {CameraRoll} from '@react-native-camera-roll/camera-roll';
-import { requestMediaLibraryPermission } from './Permission'; 
-import { ScrollView } from 'react-native-gesture-handler';
+import { CameraRoll } from '@react-native-camera-roll/camera-roll';
+import { requestMediaLibraryPermission } from './Permission';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ViewPhoto from './ViewPhoto';
+import { FlatList } from 'react-native-gesture-handler'
+
 
 
 const Images = ({ route }) => {
-  const { data } = route.params || {};  
-  const navigation = useNavigation(); 
+  const { data } = route.params || {};
+  const navigation = useNavigation();
   const [photos, setPhotos] = useState([]);
 
   const handleImagePress = (item) => {
-    console.log("Navigating to ViewPhoto with item:", item);
-    navigation.navigate("ViewPhoto", { item }); 
+    // console.log("Navigating to ViewPhoto with item:", item);
+    navigation.navigate("ViewPhoto", { item: item, data: data });
   };
 
- 
+
   useEffect(() => {
     const init = async () => {
       const hasPermission = await requestMediaLibraryPermission();
@@ -37,73 +39,79 @@ const Images = ({ route }) => {
     CameraRoll.getPhotos({
       first: 20,
       assetType: 'Photos',
-      
+
     })
       .then(r => {
-        // this.setState({ photos: r.edges });
-        // console.log(JSON.stringify(r.edges));
-        //console.log('First image URI:', r.edges[0]?.node.image.uri);
-
         setPhotos(r.edges)
       })
       .catch((err) => {
         console.error("Failed to load photos:", err);
 
-      }); 
+      });
   }
-  
+
 
   return (
-    <View style={styles.container}>
-     
-      <View style={styles.contentContainer}>
-      
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+      <View style={styles.container}>
+        <View style={styles.allControlsContainer}>
+          <Allcontrols text={data} />
+        </View>
+        {/* <View style={{ paddingTop: 10 }}> */}
+          <View style={styles.gridContainer}>
 
-        {photos.length > 0 ? (
-          <FlatList
-          data={photos}
-            scrollEnabled={true}
-            keyExtractor={(item, index) => index.toString()}
-            numColumns={3} 
-            
-
-            renderItem={({ item }) => (
-              
-              <Pressable
-                style={styles.imageContainer}
-                onPress={() => { handleImagePress(item) }}  
+            {photos.length > 0 ? (
+              <FlatList
+                data={photos}
+                keyExtractor={(item, index) => index.toString()}
+                numColumns={3}
+                scrollEnabled={true}
                 
-              >
-                {/* {console.log(item.node.image.uri)} */}
-                <Image
-                  source={{ uri: item.node.image.uri }}
-                  style={styles.image}
-
-                />
-              </Pressable>
-              
+                columnWrapperStyle={{
+                  marginRight: 10,
+                  justifyContent: 'space-between',  // Space items equally across rows
+                  flexWrap: 'wrap',  // Allow items to wrap into multiple rows
+                }}
+                
+                
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={styles.imageContainer}
+                    onPress={() => handleImagePress(item)}
+                  >
+                    {/* {console.log(item.node.image.uri)} */}
+                    <Image
+                      source={{ uri: item.node.image.uri }}
+                      style={styles.image}
+                    />
+                  </Pressable>
+                )}
+              />
+            ) : (
+              <Text style={styles.noImagesText}>No images found</Text>
             )}
-          />
-        ) : (
-          <Text style={{ backgroundColor: colors.dark }}>No images found</Text>
-
-        )}
-
-      </View>
-    </View>
+          </View>
+        {/* </View> */}
+      </View></SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'white',
   },
-  
-  contentContainer: {
-    flex: 1,
-    marginTop: 80,
-    padding: 10,
-   justifyContent:'space-between'
+  allControlsContainer: {
+    position: 'absolute',  // This makes the navbar float above other elements
+    top: 0,
+    left: 0,
+    right: 0,
+    
+  },
+  gridContainer: {
+    flex: 1, // FlatList takes remaining space
+    paddingHorizontal: 10,
+    paddingBottom: 20,
+    paddingTop:100
   },
   imageContainer: {
     width: 105,
@@ -112,23 +120,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 20,
     borderRadius: 10,
-    borderWidth:1
-    
+    borderWidth: 1,
   },
   image: {
-    
     width: '100%',
     height: '100%',
-    resizeMode: 'cover', 
-    borderRadius: 10, 
-    backgroundColor:'grey'
+    resizeMode: 'cover',
+    borderRadius: 10,
+    backgroundColor: 'grey',
   },
-  imageName: {
-    marginTop: 10,
+  noImagesText: {
+    textAlign: 'center',
+    marginTop: 100,
+    fontSize: 18,
     color: colors.dark,
-    fontSize: 16,
-    textAlign: 'center', 
   },
 });
+
 
 export default Images;
