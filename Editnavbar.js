@@ -97,7 +97,7 @@ const Editnavbar = () => {
             <Animated.View
               style={{
                 transform: [{ translateY }],
-                backgroundColor: '#fff',
+                backgroundColor: colors.secondary,
                 maxHeight: SCREEN_HEIGHT * 0.7,
                 borderTopLeftRadius: 20,
                 borderTopRightRadius: 20,
@@ -183,7 +183,7 @@ const Editnavbar = () => {
                   onPress={(event) => {
                     event.persist();
                     setTimeout(() => {
-                      console.log('Touch:', event.nativeEvent);
+                      //console.log('Touch:', event.nativeEvent);
                     }, 100);
 
                     setActiveTab(name);

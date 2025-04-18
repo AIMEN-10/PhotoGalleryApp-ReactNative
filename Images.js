@@ -35,20 +35,46 @@ const Images = ({ route }) => {
     init();
   }, []);
 
-  const getAllPhotos = () => {
-    CameraRoll.getPhotos({
-      first: 20,
-      assetType: 'Photos',
+  const getAllPhotos = async () => {
+    // CameraRoll.getPhotos({
+    //   first: 20,
+    //   assetType: 'Photos',
 
-    })
-      .then(r => {
-        setPhotos(r.edges)
-      })
-      .catch((err) => {
-        console.error("Failed to load photos:", err);
+    // })
+    //   .then(r => {
+    //     setPhotos(r.edges)
+    //   })
+    //   .catch((err) => {
+    //     console.error("Failed to load photos:", err);
 
-      });
-  }
+    //   });
+
+    let hasNextPage = true;
+    let after = null;
+    let allPhotos = [];
+  
+    try {
+      while (hasNextPage) {
+        const result = await CameraRoll.getPhotos({
+          first: 100, // reasonable batch size
+          assetType: 'Photos',
+          after: after,
+        });
+  
+        allPhotos = allPhotos.concat(result.edges);
+        hasNextPage = result.page_info.has_next_page;
+        after = result.page_info.end_cursor;
+  
+        // Optional: Break if too many
+        if (allPhotos.length >= 1000) break; // Prevent overloading
+      }
+  
+      setPhotos(allPhotos);
+    } catch (err) {
+      console.error("Error fetching paginated photos:", err);
+    }
+
+}
 
 
   return (
@@ -66,14 +92,14 @@ const Images = ({ route }) => {
                 keyExtractor={(item, index) => index.toString()}
                 numColumns={3}
                 scrollEnabled={true}
-                
+
                 columnWrapperStyle={{
                   marginRight: 10,
                   justifyContent: 'space-between',  // Space items equally across rows
                   flexWrap: 'wrap',  // Allow items to wrap into multiple rows
                 }}
-                
-                
+
+
                 renderItem={({ item }) => (
                   <Pressable
                     style={styles.imageContainer}
@@ -105,7 +131,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    
+
   },
   gridContainer: {
     flex: 1, // FlatList takes remaining space

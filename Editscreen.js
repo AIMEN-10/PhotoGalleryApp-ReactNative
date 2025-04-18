@@ -6,9 +6,11 @@ import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplet
 import DateTimePicker from '@react-native-community/datetimepicker';
 import colors from './theme/colors';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useNavigation } from '@react-navigation/native';
 
 
 const Editscreen = () => {
+  const navigation = useNavigation();
   const [name, setname] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null); // Store selected event (key)
   const [eventData, setEventData] = useState([]);
@@ -16,7 +18,27 @@ const Editscreen = () => {
   const [location, setLocation] = useState(''); // Store location
   const [eventDate, setEventDate] = useState(new Date()); // Store the selected date
   const [showDatePicker, setShowDatePicker] = useState(false); // Control visibility of the date picker
+  const [date, setDate] = useState(new Date());
+  const [show, setShow] = useState(false);
 
+ const onChange = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShow(Platform.OS === 'ios' ? true : false); // Hide the picker on Android after selection
+    setDate(currentDate);
+  };
+
+  const showDatepicker = () => {
+    setShow(true);
+  };
+
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Adding leading 0 for months < 10
+    const day = String(date.getDate()).padStart(2, '0'); // Adding leading 0 for days < 10
+    return `${year}-${month}-${day}`;
+  };
+  const currentDateFormatted = formatDate(new Date());
+  
   // Fetch events data from API
   // useEffect(() => {
   //     fetch(baseUrl + 'api/Image/getAllEvents') // Replace with your actual API endpoint
@@ -42,16 +64,16 @@ const Editscreen = () => {
 
 
 
-  const onChange = (event, selectedDate) => {
-    const currentDate = selectedDate || eventDate;
-    setShowDatePicker(false); // Automatically hide the picker after selection on Android
-    setEventDate(currentDate);
-  };
+  // const onChange = (event, selectedDate) => {
+  //   const currentDate = selectedDate || eventDate;
+  //   setShowDatePicker(false); // Automatically hide the picker after selection on Android
+  //   setEventDate(currentDate);
+  // };
 
-  // Function to show date picker
-  const showDatepicker = () => {
-    setShowDatePicker(true); // Show the date picker when the user clicks the button
-  };
+  // // Function to show date picker
+  // const showDatepicker = () => {
+  //   setShowDatePicker(true); // Show the date picker when the user clicks the button
+  // };
   // Handle Save action
   const handleSave = async () => {
     console.log('Saved:', { selectedEvent, eventDate, location });
@@ -119,7 +141,7 @@ const Editscreen = () => {
               placeholder="Enter name"
               placeholderTextColor={colors.grey}
             />
-            <Text style={styles.label}>More...</Text>
+            <Text style={styles.label} onPress={() => navigation.navigate('PersonInfo')}>More...</Text>
             {/* <Icon name="check-circle" size={30} color={colors.primary} /> */}
           </View>
           <Text style={styles.label}>Event</Text>
@@ -139,13 +161,38 @@ const Editscreen = () => {
             <Icon name="add-circle" size={24} color={colors.primary} style={{ marginTop: 10 }} />
           </View>
 
-          <Text style={styles.label}>Event Date</Text>
+          {/* <Text style={styles.label}>Event Date</Text>
 
           <TouchableOpacity onPress={showDatepicker} style={styles.datePickerButton}>
             <Text style={styles.datePickerButtonText}>
               {eventDate ? eventDate.toLocaleDateString() : 'Select Date'}
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
+
+          <Text style={styles.label}>Event Date</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+                        <Text style={{ fontSize: 18, color: colors.dark }}>
+                          {formatDate(date)}
+                        </Text>
+          
+                        <Icon
+                          name="event"
+                          size={30}
+                          color={colors.primary}
+                          onPress={showDatepicker}
+                        />
+          
+                        {show && (
+                          <DateTimePicker
+                            testID="dateTimePicker"
+                            value={date}
+                            mode="date"
+                            is24Hour={true}
+                            display="default"
+                            onChange={onChange}
+                          />
+                        )}
+                      </View>
 
           {/* Conditionally render DateTimePicker */}
           {showDatePicker && (
@@ -205,19 +252,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 5,
   },
-  detailValue: {
-    backgroundColor: '#0D6068', // Dark background for inputs to blend with the form container
-    color: 'black', // White text color
-    borderWidth: 1,
-    borderColor: '#fff',
-    marginBottom: 15,
-    padding: 10,
-    height: 40, // Reduce height for better mobile compatibility
-    borderRadius: 5,
-    fontSize: 14, // Adjust font size to fit better in smaller inputs
-  },
+  // detailValue: {
+  //   backgroundColor: '#0D6068', // Dark background for inputs to blend with the form container
+  //   color: colors.dark, // White text color
+  //   borderWidth: 1,
+  //   borderColor: colors.secondary,
+  //   marginBottom: 15,
+  //   padding: 10,
+  //   height: 40, // Reduce height for better mobile compatibility
+  //   borderRadius: 5,
+  //   fontSize: 14, // Adjust font size to fit better in smaller inputs
+  // },
   saveButton: {
-    backgroundColor: '#0D6068', // Button color same as the form container
+    backgroundColor: colors.primary, // Button color same as the form container
     paddingVertical: 8, // Reduced padding for a smaller button
     paddingHorizontal: 20,
     borderRadius: 5,
@@ -227,15 +274,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center', // Center the button horizontally
   },
   saveButtonText: {
-    color: '#fff', // White text for the button
+    color: colors.secondary, // White text for the button
     fontWeight: 'bold',
     fontSize: 14, // Adjust font size for the button
   },
   dropdown: {
-    backgroundColor: '#fff', // White background for the dropdown
+    backgroundColor: colors.secondary, // White background for the dropdown
     borderRadius: 5,
     marginBottom: 15,
-    textDecorationColor: 'black'
+    textDecorationColor: colors.dark
   },
   input: {
     fontSize: 15, // Adjust font size for input text

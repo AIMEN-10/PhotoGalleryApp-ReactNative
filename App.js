@@ -11,6 +11,7 @@ import Search from './Search';
 import Sync from './Sync';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Editscreen from './Editscreen';
+import PersonInfo from './PersonInfo';
 import Login2 from './LogIn2';
 import Signup from './SignUp';
 import Home from './Home';
@@ -83,6 +84,11 @@ const MainStack = () => (
       name="Edit" 
       component={Editscreen} 
       options={{ headerShown: false }} 
+    />
+    
+    <Stack.Screen name="PersonInfo" 
+    component={PersonInfo} 
+    options={{ headerShown: false }} 
     />
      {/* <Stack.Screen 
           name="Placeholder" 
