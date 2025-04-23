@@ -1,16 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { FlatList, Text, TextInput, View } from "react-native";
-import { Button } from "react-native-paper";
 import { openDatabase } from 'react-native-sqlite-storage';
 
-const Databasequeries = () => {
-    const [ID, setID] = useState();
-    const [name, setName] = useState('')
-    const [allPersons, setAllPersons] = useState([])
-    const [tempAllPerson, setAllTempPersons] = useState([])
 
-    const db = openDatabase({ name: 'PhotoGallery.db' });
-    const createTable = () => {
+const db = openDatabase({ name: 'PhotoGallery.db' });
+    const createTableImage = () => {
         db.transaction(
             (txn) => {
                 txn.executeSql(
@@ -39,37 +31,57 @@ const Databasequeries = () => {
         );
     }
 
-    const insertData = () => {
+    const InsertImageData = (image) => {
+      createTableImage()
         db.transaction((txn) => {
             txn.executeSql(
                 `insert into Image(path,capture_date,last_modified,hash) values(?,?,?,?)`,
-                [ID, name],
-                (t, res) => { console.log('Data Inserted Successfully') },
+                [image.path, image.capture_date, image.last_modified, image.hash],
+                (t, res) => { console.log('Data Inserted Successfully'),image },
                 (error) => { console.log(error.message) }
             )
         });
     }
+    
+    
 
-    const getAllData = () => {
-        console.log('GetAllData')
-        db.transaction(txn => {
-            txn.executeSql(
-                'Select * from Image',
-                [],
-                (txn, res) => {
-                    var tempAllPerson = []
-                    for (i = 0; i < res.rows.length; i++) {
-                        var p = { ID: res.rows.item(i).ID, pName: res.rows.item(i).pName };
-                        tempAllPerson.push(p)
-                        console.log(tempAllPerson)
-                    }
-                    setAllPersons([...tempAllPerson]);
-                    // console.log(allPersons)
-                },
-                (error) => { }
-            )
-        })
-    }
+    const getAllImageData = () => {
+      const imageData = [];
+      
+      db.transaction((txn) => {
+        txn.executeSql(
+          'SELECT * FROM Image',
+          [],
+          (t, res) => {
+            console.log('Data fetched successfully', res.rows.raw());  // Logs the fetched rows
+            for (let i = 0; i < res.rows.length; i++) {
+              imageData.push(res.rows.item(i));  // Push each row into the imageData array
+            }
+          },
+          (error) => {
+            console.log('Error fetching data: ', error.message);
+          }
+        );
+      });
+    
+      return imageData;  // Return the data collected (Note: due to the async nature of SQL, data may be fetched later)
+    };
+//person 
+
+ const createPersonTable = async () => {
+    const database = await db;
+    await database.transaction(tx => {
+        tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS person (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              path TEXT,
+              gender TEXT NOT NULL DEFAULT 'U'
+            );
+          `);
+    });
+  };
+
 
     const getDataByID = () => {
         db.transaction((txn) => {
@@ -168,60 +180,198 @@ const Databasequeries = () => {
             )
         })
     }
-    useEffect(createTable, []);
 
-    return (
-        <View style={{  }}>
-            <TextInput onChangeText={setID} placeholder="Enter ID" value={ID}
-                style={{ borderWidth: 1, borderRadius: 10, margin: 10, fontSize: 20, }} />
-            <TextInput onChangeText={setName} placeholder="Enter Name" value={name}
-                style={{ borderWidth: 1, borderRadius: 10, margin: 10, fontSize: 20, }} />
-            <Button
-                onPress={insertData}
-                mode="contained" style={{ borderRadius: 10, margin: 10, width: '40%', alignSelf: "center" }}>
-                Add Data
-            </Button>
-            <Button
-                onPress={getDataByID}
-                mode="contained" style={{ borderRadius: 10, margin: 10, width: '40%', alignSelf: "center" }}>
-                Show By ID
-            </Button>
-            <Button
-                onPress={getAllData}
-                mode="contained" style={{ borderRadius: 10, margin: 10, width: '40%', alignSelf: "center" }}>
-                Show All
-            </Button>
-            <Button
-                onPress={Reset}
-                mode="contained" style={{ borderRadius: 10, margin: 10, width: '40%', alignSelf: "center" }}>
-                Reset
-            </Button>
-            <Button
-                onPress={DeletetAllData}
-                mode="contained" style={{ borderRadius: 10, margin: 10, width: '40%', alignSelf: "center" }}>
-                Delete
-            </Button>
-            <Button
-                onPress={DeletetAllDataByid}
-                mode="contained" style={{ borderRadius: 10, margin: 10, width: '40%', alignSelf: "center" }}>
-                Delete by ID
-            </Button>
-            <Button
-                onPress={UpdateData}
-                mode="contained" style={{ borderRadius: 10, margin: 10, width: '40%', alignSelf: "center" }}>
-                update
-            </Button>
-            <Button
-                onPress={UpdateDataByid}
-                mode="contained" style={{ borderRadius: 10, margin: 10, width: '40%', alignSelf: "center" }}>
-                update by ID
-            </Button>
-            <FlatList
-                data={allPersons}
-                renderItem={({ item }) => <Text>{item.pName} ---- {item.ID}</Text>}
-            />
-        </View>
-    );
-}
+    //Event
+    const createEventTable = async () => {
+        const database = await db;
+        await database.transaction(tx => {
+          tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS event (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL
+            );
+          `);
+        });
+      };
+      const insertEvent = async (name) => {
+        if (!name) throw new Error('Event name is required.');
+      
+        const database = await db;
+        await database.transaction(tx => {
+          tx.executeSql(
+            `INSERT INTO event (name) VALUES (?)`,
+            [name]
+          );
+        });
+      };
+      //imageevent
 
-export default Databasequeries;
+      const createImageEventTable = async () => {
+        const database = await db;
+        await database.transaction(tx => {
+          tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS imageEvent (
+              image_id INTEGER,
+              event_id INTEGER,
+              PRIMARY KEY (image_id, event_id),
+              FOREIGN KEY (image_id) REFERENCES image(id),
+              FOREIGN KEY (event_id) REFERENCES event(id)
+            );
+          `);
+        });
+      };
+
+      const insertImageEvent = async (image_id, event_id) => {
+        const database = await db;
+        await database.transaction(tx => {
+          tx.executeSql(
+            `INSERT INTO imageEvent (image_id, event_id) VALUES (?, ?)`,
+            [image_id, event_id]
+          );
+        });
+      };
+
+      //imageperson
+      const createImagePersonTable = async () => {
+        const database = await db;
+        await database.transaction(tx => {
+          tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS imagePerson (
+              image_id INTEGER NOT NULL,
+              person_id INTEGER NOT NULL,
+              PRIMARY KEY (image_id, person_id),
+              FOREIGN KEY (image_id) REFERENCES image(id),
+              FOREIGN KEY (person_id) REFERENCES person(id)
+            );
+          `);
+        });
+      };
+
+      const linkImageToPerson = async (image_id, person_id) => {
+        if (!image_id || !person_id) {
+          throw new Error('Both image_id and person_id are required.');
+        }
+      
+        const database = await db;
+        await database.transaction(tx => {
+          tx.executeSql(
+            `INSERT INTO imagePerson (image_id, person_id) VALUES (?, ?)`,
+            [image_id, person_id]
+          );
+        });
+      };
+
+      const getPersonsForImage = async (image_id) => {
+        const database = await db;
+        return new Promise((resolve, reject) => {
+          database.transaction(tx => {
+            tx.executeSql(
+              `
+              SELECT p.* FROM person p
+              JOIN imagePerson ip ON p.id = ip.person_id
+              WHERE ip.image_id = ?
+              `,
+              [image_id],
+              (tx, results) => {
+                let persons = [];
+                for (let i = 0; i < results.rows.length; i++) {
+                  persons.push(results.rows.item(i));
+                }
+                resolve(persons);
+              },
+              error => reject(error)
+            );
+          });
+        });
+      };
+
+      const getImagesForPerson = async (person_id) => {
+        const database = await db;
+        return new Promise((resolve, reject) => {
+          database.transaction(tx => {
+            tx.executeSql(
+              `
+              SELECT i.* FROM image i
+              JOIN imagePerson ip ON i.id = ip.image_id
+              WHERE ip.person_id = ?
+              `,
+              [person_id],
+              (tx, results) => {
+                let images = [];
+                for (let i = 0; i < results.rows.length; i++) {
+                  images.push(results.rows.item(i));
+                }
+                resolve(images);
+              },
+              error => reject(error)
+            );
+          });
+        });
+      };
+      //location 
+
+      const createLocationTable = async () => {
+        const database = await db;
+        await database.transaction(tx => {
+          tx.executeSql(`
+            CREATE TABLE IF NOT EXISTS location (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              latitude REAL,
+              longitude REAL
+            );
+          `);
+        });
+      };
+
+      const insertLocation = async ({ name, latitude = null, longitude = null }) => {
+        if (!name) throw new Error('Location name is required.');
+      
+        const database = await db;
+        await database.transaction(tx => {
+          tx.executeSql(
+            `INSERT INTO location (name, latitude, longitude) VALUES (?, ?, ?)`,
+            [name, latitude, longitude]
+          );
+        });
+      };
+
+      //group by people 
+      const getPeopleWithImages = async () => {
+        const database = await db;
+        return new Promise((resolve, reject) => {
+          database.transaction(tx => {
+            tx.executeSql(
+              `
+             SELECT p.*, GROUP_CONCAT(i.path) AS image_paths
+FROM person p
+JOIN imagePerson ip ON p.id = ip.person_id
+JOIN image i ON i.id = ip.image_id
+GROUP BY p.id;
+
+              `,
+              [],
+              (tx, results) => {
+                let peopleWithImages = [];
+                for (let i = 0; i < results.rows.length; i++) {
+                  const row = results.rows.item(i);
+                  const person = {
+                    name: row.name,
+                    imagePaths: row.image_paths ? row.image_paths.split(',') : [],
+                  };
+                  peopleWithImages.push(person);
+                }
+                resolve(peopleWithImages);
+              },
+              error => reject(error)
+            );
+          });
+        });
+      };
+    //useEffect(createTableImage, []);
+
+    
+
+
+export { InsertImageData,getAllImageData };
+
