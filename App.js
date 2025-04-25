@@ -101,7 +101,7 @@ const MainStack = () => (
 );
 const App = () => {
   const Stack = createNativeStackNavigator();
-  global.baseUrl = 'http://192.168.43.155/MapcourseApi/';
+  global.baseUrl = 'http://192.168.100.22:5000/';
 
   // useEffect(() => {
   //   requestImagePermission();

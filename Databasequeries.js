@@ -32,20 +32,30 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
     }
 
     const InsertImageData = (image) => {
-      createTableImage()
+      return new Promise((resolve, reject) => {
+        createTableImage();
+    
         db.transaction((txn) => {
-            txn.executeSql(
-                `insert into Image(path,capture_date,last_modified,hash) values(?,?,?,?)`,
-                [image.path, image.capture_date, image.last_modified, image.hash],
-                (t, res) => { console.log('Data Inserted Successfully'),image },
-                (error) => { console.log(error.message) }
-            )
+          txn.executeSql(
+            `INSERT INTO Image(path, capture_date, last_modified, hash) VALUES (?, ?, ?, ?)`,
+            [image.path, image.capture_date, image.last_modified, image.hash],
+            (t, res) => {
+              console.log('✅ Image inserted successfully with ID:', res.insertId);
+              resolve(res.insertId); 
+            },
+            (t, error) => {
+              console.log('❌ Insert error:', error.message);
+              reject(error);
+            }
+          );
         });
-    }
+      });
+    };
+    
     
     
 
-    const getAllImageData = () => {
+    const getAllImageData = (callback) => {
       const imageData = [];
       
       db.transaction((txn) => {
@@ -53,34 +63,65 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
           'SELECT * FROM Image',
           [],
           (t, res) => {
-            console.log('Data fetched successfully', res.rows.raw());  // Logs the fetched rows
             for (let i = 0; i < res.rows.length; i++) {
-              imageData.push(res.rows.item(i));  // Push each row into the imageData array
+              imageData.push(res.rows.item(i)); 
             }
+            callback(imageData);
           },
           (error) => {
             console.log('Error fetching data: ', error.message);
           }
         );
       });
-    
-      return imageData;  // Return the data collected (Note: due to the async nature of SQL, data may be fetched later)
     };
 //person 
 
- const createPersonTable = async () => {
-    const database = await db;
-    await database.transaction(tx => {
-        tx.executeSql(`
-            CREATE TABLE IF NOT EXISTS person (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL,
-              path TEXT,
-              gender TEXT NOT NULL DEFAULT 'U'
-            );
-          `);
+const createPersonTable = async () => {
+  
+  db.transaction((txn) => {
+    txn.executeSql(
+      `CREATE TABLE IF NOT EXISTS person (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        path TEXT,
+        gender TEXT NOT NULL DEFAULT 'U'
+      )`, // <-- closing parenthesis added here
+      [],
+      (sqlTxn, res) => {
+        console.log('Person table created successfully');
+      },
+      (sqlTxn, error) => {
+        console.log('Error creating Person table: ' + error.message);
+      }
+    );
+  });
+};
+
+  
+const insertPerson = async (person) => {
+  return new Promise((resolve, reject) => {
+    // Ensure the Person table exists
+    createPersonTable();
+
+    db.transaction((txn) => {
+      txn.executeSql(
+        `INSERT INTO person (name, path, gender) VALUES (?, ?, ?)`,
+        [person.name, person.path, person.gender],
+        (t, res) => {
+          // If insertion is successful, log the ID and resolve the promise with the personId
+          const personId = res.insertId;
+          console.log('Data Inserted Successfully, Person ID:', personId);
+          resolve(personId);  // Return the personId
+        },
+        (error) => {
+          // If there's an error, reject the promise
+          console.error('Error inserting person:', error.message);
+          reject(error);  // Reject with the error
+        }
+      );
     });
-  };
+  });
+};
 
 
     const getDataByID = () => {
@@ -104,7 +145,7 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
         
         db.transaction(txn => {
             txn.executeSql(
-                'Delete from person ',
+                'Delete from image ',
                 [],
                 (txn, res) => {
                     // var tempAllPerson = []
@@ -232,23 +273,47 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
       };
 
       //imageperson
+      // const createImagePersonTable = async () => {
+      //   const database = await db;
+      //   await database.transaction(tx => {
+      //     tx.executeSql(`
+      //       CREATE TABLE IF NOT EXISTS imagePerson (
+      //         image_id INTEGER NOT NULL,
+      //         person_id INTEGER NOT NULL,
+      //         PRIMARY KEY (image_id, person_id),
+      //         FOREIGN KEY (image_id) REFERENCES image(id),
+      //         FOREIGN KEY (person_id) REFERENCES person(id)
+      //       );
+      //     `);
+      //   });
+      // };
       const createImagePersonTable = async () => {
-        const database = await db;
-        await database.transaction(tx => {
-          tx.executeSql(`
-            CREATE TABLE IF NOT EXISTS imagePerson (
-              image_id INTEGER NOT NULL,
-              person_id INTEGER NOT NULL,
-              PRIMARY KEY (image_id, person_id),
-              FOREIGN KEY (image_id) REFERENCES image(id),
-              FOREIGN KEY (person_id) REFERENCES person(id)
-            );
-          `);
+  
+        db.transaction((txn) => {
+          txn.executeSql(
+            `CREATE TABLE IF NOT EXISTS imagePerson (
+                       image_id INTEGER NOT NULL,
+                       person_id INTEGER NOT NULL,
+                       PRIMARY KEY (image_id, person_id),
+                       FOREIGN KEY (image_id) REFERENCES image(id),
+                       FOREIGN KEY (person_id) REFERENCES person(id)
+            )`, 
+            [],
+            (sqlTxn, res) => {
+              console.log('ImagePerson table created successfully');
+            },
+            (sqlTxn, error) => {
+              console.log('Error creating Person table: ' + error.message);
+            }
+          );
         });
       };
 
-      const linkImageToPerson = async (image_id, person_id) => {
-        if (!image_id || !person_id) {
+      const linkImageToPerson = async ({ imageId, personId }) => {
+        createImagePersonTable();
+        console.log('linkImageToPerson', { imageId, personId });
+      
+        if (!imageId || !personId) {
           throw new Error('Both image_id and person_id are required.');
         }
       
@@ -256,10 +321,13 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
         await database.transaction(tx => {
           tx.executeSql(
             `INSERT INTO imagePerson (image_id, person_id) VALUES (?, ?)`,
-            [image_id, person_id]
+            [imageId, personId],
+            () => console.log("✅ Linked image to person successfully"),
+            (tx, error) => console.log("❌ Error linking image to person:", error.message)
           );
         });
       };
+      
 
       const getPersonsForImage = async (image_id) => {
         const database = await db;
@@ -373,5 +441,5 @@ GROUP BY p.id;
     
 
 
-export { InsertImageData,getAllImageData };
+export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages};
 

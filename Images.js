@@ -50,7 +50,8 @@ const Images = ({ route }) => {
                   onPress={() => handleImagePress(item)}
                 >
                   <Image
-                    source={{ uri: item.node.image.uri }}
+                    //source={{ uri: item.node.image.uri}}
+                    source={{ uri: item}}
                     style={styles.image}
                   />
                 </Pressable>

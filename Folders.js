@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { View, ScrollView, Image, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
+import FoldersData from './ViewModels/FoldersData';
 
 const Folders = ({ route }) => {
     const { data } = route.params || {};
+    
     const navigation = useNavigation();
+    const result = FoldersData({data});
+
 
     const handleNavigation = () => {
         navigation.navigate("Images", { data: labelname});
@@ -13,6 +17,7 @@ const Folders = ({ route }) => {
 const [labelname,setlabelname]=useState("Biit");
     return (
         <View style={styles.container}>
+           
             <ScrollView >
                 <View style={styles.grid}>
 
@@ -67,111 +72,7 @@ const [labelname,setlabelname]=useState("Biit");
                         <Text style={styles.imageName}>Park</Text>
                         {/* </View> */}
                     </TouchableOpacity>
-                    {/* <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-                        <Image
-                            source={require("./asset/12.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>2025-12-1</Text>
-
-                    </TouchableOpacity> */}
-                    {/*<TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-                        <Image
-                            source={require("./asset/1.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>{data} 5</Text>
-
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-                        <Image
-                            source={require("./asset/1.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>{data} 6</Text>
-
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-                        <Image
-                            source={require("./asset/1.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>{data} 7</Text>
-
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-                        <Image
-                            source={require("./asset/1.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>{data} 8</Text>
-
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-                        <Image
-                            source={require("./asset/1.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>{data} 9</Text>
-
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-                        <Image
-                            source={require("./asset/1.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>{data} 10</Text>
-
-                    </TouchableOpacity> */}
                 </View>
-
-
-
-
 
                 {/* <View style={styles.grid}>
                     {Array.from({ length: 10 }, (_, i) => (
