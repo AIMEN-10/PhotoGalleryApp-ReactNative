@@ -1,13 +1,26 @@
-import React from "react";
-import { View, Text } from "react-native";
 
-const FoldersData =(data) => {
-    const { photos } = data || {};
-    console.log(data);
-return (
-    <View style={{ flex: 1, backgroundColor: 'white' }}>
-      <Text>Folders Data</Text>
-    </View>
-  );
+import { getPeopleWithImages } from "../Databasequeries";
+
+
+const FoldersData =async (data) => {
+    
+    const value = data?.data;
+    console.log(value); 
+    if (value === "Person") {
+        const groupbypersondata=await getPeopleWithImages();
+        return groupbypersondata;
+    }
+    else if (value === "Event") {
+      
+     }
+    else if( value === "Location") {
+
+    }
+    else if (value === "Date") {
+
+    }
+    // else if (value === "Label") {
+        
+    // }
 }
 export default FoldersData;

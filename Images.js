@@ -8,13 +8,42 @@ import ViewPhoto from './ViewPhoto';
 import Databasequeries from './Databasequeries';
 import { FlatList } from 'react-native-gesture-handler';
 import ImageData from './ViewModels/ImageData';
+import Filteredimages from './ViewModels/Filteredimages';
 
 
 
 const Images = ({ route }) => {
   const { data } = route.params || {};
+  const parts = data.split(';');
+
   const navigation = useNavigation();
-  const { photos } = ImageData();
+  
+  const [photos, setPhotos] = useState([]); // Initialize photos state
+  const { photos: fetchedPhotosFromHook } = ImageData();
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        if (!data) {
+          console.log('No data provided.');
+          return;
+        }
+
+        if (data === 'Label') {
+          
+          setPhotos(fetchedPhotosFromHook); 
+          console.log('Label data:', {photos}); 
+        } else {
+          const fetchedPhotos = await Filteredimages(data);  
+          setPhotos(fetchedPhotos);  
+        }
+      } catch (error) {
+        console.error('Error loading photos:', error);
+      }
+    };
+
+    loadData(); 
+  }, [data]); 
+
 
   const handleImagePress = (item) => {
     navigation.navigate("ViewPhoto", { item: item, data: data });
@@ -25,7 +54,7 @@ const Images = ({ route }) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
       <View style={styles.container}>
         <View style={styles.allControlsContainer}>
-          <Allcontrols text={data} />
+        <Allcontrols text={parts[2] || 'Label'} />
 
         </View>
         <View style={styles.gridContainer}>
@@ -45,13 +74,14 @@ const Images = ({ route }) => {
 
 
               renderItem={({ item }) => (
+                
                 <Pressable
                   style={styles.imageContainer}
                   onPress={() => handleImagePress(item)}
                 >
                   <Image
                     //source={{ uri: item.node.image.uri}}
-                    source={{ uri: item}}
+                    source={{ uri: item.path}}
                     style={styles.image}
                   />
                 </Pressable>

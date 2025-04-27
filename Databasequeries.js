@@ -98,7 +98,8 @@ const createPersonTable = async () => {
 };
 
   
-const insertPerson = async (person) => {
+const insertPerson = async ({person}) => {
+
   return new Promise((resolve, reject) => {
     // Ensure the Person table exists
     createPersonTable();
@@ -272,6 +273,33 @@ const insertPerson = async (person) => {
         });
       };
 
+
+      const getPersonTableColumns = async () => {
+        return new Promise((resolve, reject) => {
+          db.transaction((txn) => {
+            txn.executeSql(
+              "PRAGMA table_info(person);", // Query to get column info
+              [], // No parameters for the query
+              (txn, results) => {
+                const columns = [];
+                
+                // Loop through results to collect column names
+                for (let i = 0; i < results.rows.length; i++) {
+                  columns.push(results.rows.item(i).name);
+                }
+                
+                // Resolve the promise with the column names
+                resolve(columns);
+              },
+              (error) => {
+                // If there's an error, reject the promise with the error
+                console.error('Error fetching column names:', error.message);
+                reject(error);
+              }
+            );
+          });
+        });
+      };
       //imageperson
       // const createImagePersonTable = async () => {
       //   const database = await db;
@@ -352,7 +380,10 @@ const insertPerson = async (person) => {
           });
         });
       };
+    
 
+
+      
       const getImagesForPerson = async (person_id) => {
         const database = await db;
         return new Promise((resolve, reject) => {
@@ -411,21 +442,22 @@ const insertPerson = async (person) => {
           database.transaction(tx => {
             tx.executeSql(
               `
-             SELECT p.*, GROUP_CONCAT(i.path) AS image_paths
+             SELECT p.id,p.name, p.path AS image_path
 FROM person p
 JOIN imagePerson ip ON p.id = ip.person_id
 JOIN image i ON i.id = ip.image_id
 GROUP BY p.id;
+`,
 
-              `,
               [],
               (tx, results) => {
                 let peopleWithImages = [];
                 for (let i = 0; i < results.rows.length; i++) {
                   const row = results.rows.item(i);
                   const person = {
+                    id: row.id,
                     name: row.name,
-                    imagePaths: row.image_paths ? row.image_paths.split(',') : [],
+                    imagePath: row.image_path, // Only one image path
                   };
                   peopleWithImages.push(person);
                 }
@@ -433,13 +465,17 @@ GROUP BY p.id;
               },
               error => reject(error)
             );
+              
+             
           });
         });
       };
-    //useEffect(createTableImage, []);
+   
 
     
 
 
-export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages};
+export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
+  getImagesForPerson
+};
 

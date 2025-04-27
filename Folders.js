@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Image, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
@@ -6,90 +6,50 @@ import FoldersData from './ViewModels/FoldersData';
 
 const Folders = ({ route }) => {
     const { data } = route.params || {};
+    const [result, setResult] = useState([]);
     
     const navigation = useNavigation();
-    const result = FoldersData({data});
 
-
-    const handleNavigation = () => {
-        navigation.navigate("Images", { data: labelname});
+    const loadData = async () => {
+        setResult(await FoldersData({ data }));
     };
-const [labelname,setlabelname]=useState("Biit");
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+
+
+    const handleNavigation = (id,name) => {
+        console.log(result);
+        navigation.navigate("Images", { data: data+';'+id+';'+name });
+    };
+   
     return (
         <View style={styles.container}>
-           
+
             <ScrollView >
                 <View style={styles.grid}>
 
-                    <TouchableOpacity
-                        onPress={() => handleNavigation("Biit")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-
-                        <Image
-                            source={require("./asset/4.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}
-                        >Biit</Text>
-                    </TouchableOpacity>
-
-
-
-
-                    
-                     <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-                        <Image
-                            source={require("./asset/8.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>Lake View</Text>
-
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        onPress={() => handleNavigation("path")}
-                        activeOpacity={0.7}
-                        style={[styles.folderborder, { borderColor: colors.primary }]}
-
-                    >
-
-                        {/* <View style={[styles.folderborder, { borderColor: colors.primary }]}> */}
-                        <Image
-                            source={require("./asset/3.jpeg")}
-                            style={styles.image}
-                        />
-
-                        <Text style={styles.imageName}>Park</Text>
-                        {/* </View> */}
-                    </TouchableOpacity>
-                </View>
-
-                {/* <View style={styles.grid}>
-                    {Array.from({ length: 10 }, (_, i) => (
+                    {result.map((item, index) => (
                         <TouchableOpacity
-                            key={i}
-                            onPress={handleNavigation}
+                            key={index}
+                            onPress={() => handleNavigation(item.id,item.name)}
                             activeOpacity={0.7}
                             style={[styles.folderborder, { borderColor: colors.primary }]}
                         >
                             <Image
-                                source={require("./asset/1.jpeg")}
+                                source={{ uri: baseUrl + item.imagePath }}   // <<< this loads your imagePath
                                 style={styles.image}
                             />
-                            <Text style={styles.imageName}>{data} {i + 1}</Text>
+                            <Text style={styles.imageName}>
+                                {item.name}
+                            </Text>
                         </TouchableOpacity>
                     ))}
-                </View> */}
+
+                </View>
+
             </ScrollView>
         </View>
     );

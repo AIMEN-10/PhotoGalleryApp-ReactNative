@@ -16,14 +16,15 @@ const ViewPhoto = ({ route, navigation }) => {
 
     <SafeAreaView >
 
-      {/* <View style={styles.allControlsContainer}>
+      <View style={styles.allControlsContainer}>
 
-        <Allcontrols text="Sir Afrasiab" />
-      </View> */}
+        <Allcontrols text=" " />
+      </View>
       <View style={styles.imageContainer}>
         {/* <Image source={{ uri: imageUrl }} style={styles.image} /> */}
          <Image
-          source={{ uri: item.node.image.uri }}
+           source={{ uri: item.path }}
+          // source={require('.//asset//22.jpeg')}
           style={styles.image}
         />
       </View>
@@ -52,8 +53,8 @@ const styles = StyleSheet.create({
   },
   image: {
     width: width,
-    height: height-22,
-    resizeMode: 'cover',
+    height: height,
+    resizeMode: 'contain',
     
    
   },

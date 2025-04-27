@@ -29,10 +29,14 @@ const ImageData = () => {
         
 
         getAllImageData((data) => {
-
-          const paths = data.map(item => item.path);
-          setPhotos(paths);
+          const paths = data.map(item => ({
+            id: item.id,    // Accessing the 'id' from the item
+            path: item.path // Accessing the 'path' from the item
+          }));
+          
+          setPhotos(paths); // Set the photos state with the array of objects
         });
+        
 
 
 
@@ -201,9 +205,8 @@ const ImageData = () => {
     return hash.toString();
   };
 
-  return {
-    photos,
-  };
+  return { photos };
+
 };
 
 // let hasNextPage = true;

@@ -127,7 +127,7 @@ const Editscreen = () => {
           <View style={{position: 'relative', left: '20%'}}>
             
           <Image
-  source={require("./asset/8.jpeg")}
+  source={require("..\\src\\images\\ff2232602f8c4ac486a8e0b66ebe5f0a.jpg")}
   style={{ height: 60, width: "20%" }}  // Correctly set the height and width
 />
 
