@@ -74,6 +74,58 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
         );
       });
     };
+
+    const getImageDetails = async (imageId) => {
+      const database = await db;
+      return new Promise((resolve, reject) => {
+        database.transaction(tx => {
+          tx.executeSql(
+            `SELECT 
+              i.id AS image_id,
+              i.path AS image_path,
+              i.capture_date,
+              i.event_date,
+              i.last_modified,
+              i.is_sync,
+              i.is_deleted,
+              i.hash,
+    
+              l.id AS location_id,
+              l.name AS location_name,
+              l.latitude,
+              l.longitude,
+    
+              p.id AS person_id,
+              p.name AS person_name,
+              p.gender,
+              p.path AS person_path,
+    
+              e.id AS event_id,
+              e.name AS event_name
+    
+            FROM Image i
+            LEFT JOIN Location l ON i.location_id = l.id
+            LEFT JOIN ImagePerson ip ON i.id = ip.image_id
+            LEFT JOIN Person p ON ip.person_id = p.id
+            LEFT JOIN ImageEvent ie ON i.id = ie.image_id
+            LEFT JOIN Event e ON ie.event_id = e.id
+            WHERE i.id = ?;`,
+            [imageId],
+            (txObj, { rows }) => {
+              const results = [];
+              for (let i = 0; i < rows.length; i++) {
+                results.push(rows.item(i));
+              }
+              resolve(results);
+            },
+            (txObj, error) => {
+              reject(error);
+            }
+          );
+        });
+      });
+    };
+    
 //person 
 
 const createPersonTable = async () => {
@@ -182,26 +234,7 @@ const insertPerson = async ({person}) => {
             )
         })
     }
-    const UpdateData = () => {
-        
-        db.transaction(txn => {
-            txn.executeSql(
-               'Update person set name=?',
-                [name],
-                (txn, res) => {
-                    // var tempAllPerson = []
-                    // for (i = 0; i < res.rows.length; i++) {
-                    //     var p = { ID: res.rows.item(i).ID, pName: res.rows.item(i).pName };
-                    //     tempAllPerson.push(p)
-                    //     console.log(tempAllPerson)
-                    // }
-                    
-                    // console.log(allPersons)
-                },
-                (error) => { }
-            )
-        })
-    }
+    
     const UpdateDataByid = () => {
         
         db.transaction(txn => {
@@ -228,7 +261,7 @@ const insertPerson = async ({person}) => {
         const database = await db;
         await database.transaction(tx => {
           tx.executeSql(`
-            CREATE TABLE IF NOT EXISTS event (
+            CREATE TABLE IF NOT EXISTS Event (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               name TEXT NOT NULL
             );
@@ -236,16 +269,62 @@ const insertPerson = async ({person}) => {
         });
       };
       const insertEvent = async (name) => {
+        createEventTable(); // Make sure the table exists
+        
         if (!name) throw new Error('Event name is required.');
       
         const database = await db;
-        await database.transaction(tx => {
-          tx.executeSql(
-            `INSERT INTO event (name) VALUES (?)`,
-            [name]
-          );
+      
+        return new Promise((resolve, reject) => {
+          database.transaction(tx => {
+            // Step 1: Check if event already exists
+            tx.executeSql(
+              'SELECT * FROM Event WHERE name = ?',
+              [name],
+              (txObj, resultSet) => {
+                if (resultSet.rows.length > 0) {
+                  // Event already exists
+                  resolve('Event already exists.');
+                } else {
+                  // Step 2: Insert event
+                  tx.executeSql(
+                    'INSERT INTO Event (name) VALUES (?)',
+                    [name],
+                    (txObj, result) => resolve('Event inserted successfully.'),
+                    (txObj, error) => reject(error)
+                  );
+                }
+              },
+              (txObj, error) => reject(error)
+            );
+          });
         });
       };
+      
+      
+      const getAllEvents = async () => {
+        const database = await db;
+        return new Promise((resolve, reject) => {
+          database.transaction(tx => {
+            tx.executeSql(
+              `SELECT * FROM Event`,
+              [],
+              (tx, results) => {
+                let events = [];
+                for (let i = 0; i < results.rows.length; i++) {
+                  events.push(results.rows.item(i));
+                }
+                resolve(events);
+              },
+              (tx, error) => { // <-- fix this
+                reject(error); // now error will not be undefined
+              }
+            );
+          });
+        });
+      };
+      
+      
       //imageevent
 
       const createImageEventTable = async () => {
@@ -476,6 +555,6 @@ GROUP BY p.id;
 
 
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
-  getImagesForPerson
+  getImagesForPerson,insertEvent,getAllEvents,getImageDetails
 };
 

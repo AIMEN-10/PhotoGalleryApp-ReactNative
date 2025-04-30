@@ -18,7 +18,7 @@ import Editscreen from './Editscreen';
 const Tab = createBottomTabNavigator();
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-const Editnavbar = () => {
+const Editnavbar =  ({ imageId }) => {
   const StaticScreen = () => (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <Text style={{ fontSize: 20 }}>Same View Remains</Text>
@@ -193,7 +193,7 @@ const Editnavbar = () => {
                     } else if (name === 'Info') {
                       setModalData({ type: 'info', content: 'Info-related content here.' });
                     } else if (name === 'Edit') {
-                      setModalData({ type: 'edit', content: Editscreen });
+                      setModalData({ type: 'edit', content: Editscreen, props: { imageId: imageId } });
                     } else if (name === 'Details') {
                       setModalData({ type: 'details', content: 'Details content here.' });
                     } else {

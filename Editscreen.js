@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView, Alert } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { SelectList } from 'react-native-dropdown-select-list';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
@@ -7,9 +7,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import colors from './theme/colors';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
+import AddEventPopup from './AddEventPopup';
+import { getAllEvents,getImageDetails } from './Databasequeries'; // Adjust the import based on your file structure
 
-
-const Editscreen = () => {
+const Editscreen = ({ imageId }) => {
   const navigation = useNavigation();
   const [name, setname] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null); // Store selected event (key)
@@ -21,7 +22,15 @@ const Editscreen = () => {
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
 
- const onChange = (event, selectedDate) => {
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const Addevent = () => {
+    setModalVisible(true);
+  };
+  const handleSelectListPress = async () => {
+    await fetchEvents(); // Fetch events when the SelectList is pressed
+  };
+  const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShow(Platform.OS === 'ios' ? true : false); // Hide the picker on Android after selection
     setDate(currentDate);
@@ -38,7 +47,39 @@ const Editscreen = () => {
     return `${year}-${month}-${day}`;
   };
   const currentDateFormatted = formatDate(new Date());
-  
+    useEffect(() => {
+  const fetchEvents = async () => {
+    try {
+      const events = await getAllEvents();
+      const formattedData = events.map(event => ({
+        key: event.id,        // unique identifier
+        value: event.name,    // display value
+      }));
+
+      setEventData(formattedData);
+      console.log('Fetched events:', { events }); // Log the fetched events
+    } catch (error) {
+      console.error('Failed to fetch events:', error);
+    }
+    try{
+      const imageDetails = await getImageDetails({imageId}); // Fetch image details using the imageId
+      if (imageDetails) {
+        console.log('Fetched image details:', imageDetails); // Log the fetched image details
+        // setname(imageDetails.name); // Set the name from the fetched image details
+        // setSelectedEvent(imageDetails.eventName); // Set the selected event from the fetched image details
+        // setEventDate(new Date(imageDetails.eventDate)); // Set the event date from the fetched image details
+        // setLocation(imageDetails.location); // Set the location from the fetched image details
+      } else {
+        console.log('No image details found for this ID!');
+      }
+    }
+    catch (error) {
+      console.error('Failed to fetch imagedata:', error);
+    }
+  };
+
+    fetchEvents(); // Call the inner async function
+  }, []);
   // Fetch events data from API
   // useEffect(() => {
   //     fetch(baseUrl + 'api/Image/getAllEvents') // Replace with your actual API endpoint
@@ -124,12 +165,12 @@ const Editscreen = () => {
 
         {/* Bottom Half - Event Form Section */}
         <View >
-          <View style={{position: 'relative', left: '20%'}}>
-            
-          <Image
-  source={require("..\\src\\images\\ff2232602f8c4ac486a8e0b66ebe5f0a.jpg")}
-  style={{ height: 60, width: "20%" }}  // Correctly set the height and width
-/>
+          <View style={{ position: 'relative', left: '20%' }}>
+
+            <Image
+              source={require("..\\src\\images\\ff2232602f8c4ac486a8e0b66ebe5f0a.jpg")}
+              style={{ height: 60, width: "20%" }}  // Correctly set the height and width
+            />
 
           </View>
           <View style={styles.nameContainer}>
@@ -148,7 +189,7 @@ const Editscreen = () => {
 
           <View style={{ flexDirection: 'row' }}>
             <View style={{ flex: 1, width: '100%' }}>
-              <SelectList
+              {/* <SelectList
                 data={eventData}
                 setSelected={setSelectedEvent}
                 placeholder="Select an event"
@@ -156,9 +197,28 @@ const Editscreen = () => {
                 boxStyles={styles.dropdown}
                 inputStyles={[styles.input, { color: 'black' }]}
                 searchInputStyle={{ color: 'black' }}
-              />
+                dropdownTextStyles={{ color: 'black' }}  
+              /> */}
+              <TouchableOpacity onPress={handleSelectListPress}>
+                <SelectList
+                  data={eventData}
+                  setSelected={setSelectedEvent} // Event selection
+                  placeholder="Select an event"
+                  save="value"
+                  boxStyles={styles.dropdown}
+                  inputStyles={[styles.input, { color: 'black' }]}
+                  searchInputStyle={{ color: 'black' }}
+                  dropdownTextStyles={{ color: 'black' }}
+                />
+              </TouchableOpacity>
             </View>
-            <Icon name="add-circle" size={24} color={colors.primary} style={{ marginTop: 10 }} />
+            <TouchableOpacity onPress={Addevent}>
+              <Icon name="add-circle" size={24} color={colors.primary} style={{ marginTop: 10 }} />
+            </TouchableOpacity>
+            <AddEventPopup
+              modalVisible={modalVisible}
+              setModalVisible={setModalVisible}
+            />
           </View>
 
           {/* <Text style={styles.label}>Event Date</Text>
@@ -170,29 +230,29 @@ const Editscreen = () => {
           </TouchableOpacity> */}
 
           <Text style={styles.label}>Event Date</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
-                        <Text style={{ fontSize: 18, color: colors.dark }}>
-                          {formatDate(date)}
-                        </Text>
-          
-                        <Icon
-                          name="event"
-                          size={30}
-                          color={colors.primary}
-                          onPress={showDatepicker}
-                        />
-          
-                        {show && (
-                          <DateTimePicker
-                            testID="dateTimePicker"
-                            value={date}
-                            mode="date"
-                            is24Hour={true}
-                            display="default"
-                            onChange={onChange}
-                          />
-                        )}
-                      </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+            <Text style={{ fontSize: 18, color: colors.dark }}>
+              {formatDate(date)}
+            </Text>
+
+            <Icon
+              name="event"
+              size={30}
+              color={colors.primary}
+              onPress={showDatepicker}
+            />
+
+            {show && (
+              <DateTimePicker
+                testID="dateTimePicker"
+                value={date}
+                mode="date"
+                is24Hour={true}
+                display="default"
+                onChange={onChange}
+              />
+            )}
+          </View>
 
           {/* Conditionally render DateTimePicker */}
           {showDatePicker && (
@@ -205,16 +265,16 @@ const Editscreen = () => {
               onChange={onChange}
             />
           )}
-<View style={styles.nameContainer}>
-          <Text style={styles.label}>Location</Text>
-          <TextInput
+          <View style={styles.nameContainer}>
+            <Text style={styles.label}>Location</Text>
+            <TextInput
               style={styles.inputname}
               value={name}
               onChangeText={(text) => setlocation(text)} // Update state on text change
               placeholder="Enter name"
               placeholderTextColor={colors.grey}
             />
-</View>
+          </View>
           {/* Save Button */}
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Text style={styles.saveButtonText}>Save</Text>
@@ -235,17 +295,17 @@ const styles = StyleSheet.create({
     gap: 20
   },
   inputname: {
-    height:10,
+    height: 10,
     borderBottomWidth: 1,
-    borderBottomColor: colors.dark, 
-    size:1,
+    borderBottomColor: colors.dark,
+    size: 1,
     flex: 1,
     fontSize: 15,
     backgroundColor: colors.secondary,
     color: 'white',
-    
+
   },
-  
+
 
   label: {
     color: colors.dark, // White color for labels

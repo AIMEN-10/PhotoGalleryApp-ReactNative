@@ -5,7 +5,7 @@ import { getPeopleWithImages } from "../Databasequeries";
 const FoldersData =async (data) => {
     
     const value = data?.data;
-    console.log(value); 
+    //console.log(value); 
     if (value === "Person") {
         const groupbypersondata=await getPeopleWithImages();
         return groupbypersondata;

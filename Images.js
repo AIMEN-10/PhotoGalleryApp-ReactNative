@@ -31,7 +31,7 @@ const Images = ({ route }) => {
         if (data === 'Label') {
           
           setPhotos(fetchedPhotosFromHook); 
-          console.log('Label data:', {photos}); 
+           //console.log('Label data:', {photos}); 
         } else {
           const fetchedPhotos = await Filteredimages(data);  
           setPhotos(fetchedPhotos);  
@@ -42,7 +42,7 @@ const Images = ({ route }) => {
     };
 
     loadData(); 
-  }, [data]); 
+  }, [data, fetchedPhotosFromHook]); 
 
 
   const handleImagePress = (item) => {

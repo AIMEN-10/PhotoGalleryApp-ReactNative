@@ -21,7 +21,7 @@ const Folders = ({ route }) => {
 
 
     const handleNavigation = (id,name) => {
-        console.log(result);
+        //console.log(result);
         navigation.navigate("Images", { data: data+';'+id+';'+name });
     };
    

@@ -8,7 +8,7 @@ const ViewPhoto = ({ route, navigation }) => {
 
   // Get the `path` from `item`
   // const { path } = item;
-  console.log(data);
+ // console.log("View photo",item);
   // const imageUrl = baseUrl + item.path.replace('~', '');
   
 
@@ -29,7 +29,7 @@ const ViewPhoto = ({ route, navigation }) => {
         />
       </View>
 
-      <Editnavbar />
+      <Editnavbar imageId={item.id}/>
 
     </SafeAreaView>
 
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: width,
-    height: height,
+    height: height*0.97,
     resizeMode: 'contain',
     
    
