@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView, Alert } from 'react-native';
-import { TextInput } from 'react-native-paper';
+import React, { useState, useEffect , useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView,TextInput, Alert,ScrollView ,FlatList} from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -8,14 +7,20 @@ import colors from './theme/colors';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import AddEventPopup from './AddEventPopup';
-import { getAllEvents,getImageDetails } from './Databasequeries'; // Adjust the import based on your file structure
+import Location from './Location';
+import { getAllEvents,getImageDetails } from './Databasequeries'; 
+import { useFocusEffect } from '@react-navigation/native';
+// const Editscreen = ( {imageId }) => {
+  const Editscreen = (props) => {
+    console.log("Editscreen props:", props);
+    
+    const { imageId, personData } = props; 
 
-const Editscreen = ({ imageId }) => {
+      
   const navigation = useNavigation();
   const [name, setname] = useState(null);
-  const [selectedEvent, setSelectedEvent] = useState(null); // Store selected event (key)
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [eventData, setEventData] = useState([]);
-  //const [eventDate, setEventDate] = useState(''); // Store event date
   const [location, setLocation] = useState(''); // Store location
   const [eventDate, setEventDate] = useState(new Date()); // Store the selected date
   const [showDatePicker, setShowDatePicker] = useState(false); // Control visibility of the date picker
@@ -23,6 +28,11 @@ const Editscreen = ({ imageId }) => {
   const [show, setShow] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
+  const[imageDetails, setImageDetails] = useState([]);
+  const [hasPerson, setHasPerson] = useState(false);
+const[persondata,setpersondata]=useState([]);
+ 
+  
 
   const Addevent = () => {
     setModalVisible(true);
@@ -42,8 +52,8 @@ const Editscreen = ({ imageId }) => {
 
   const formatDate = (date) => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Adding leading 0 for months < 10
-    const day = String(date.getDate()).padStart(2, '0'); // Adding leading 0 for days < 10
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0'); 
     return `${year}-${month}-${day}`;
   };
   const currentDateFormatted = formatDate(new Date());
@@ -52,153 +62,89 @@ const Editscreen = ({ imageId }) => {
     try {
       const events = await getAllEvents();
       const formattedData = events.map(event => ({
-        key: event.id,        // unique identifier
-        value: event.name,    // display value
+        key: event.id,        
+        value: event.name,   
       }));
 
       setEventData(formattedData);
-      console.log('Fetched events:', { events }); // Log the fetched events
     } catch (error) {
       console.error('Failed to fetch events:', error);
     }
     try{
-      const imageDetails = await getImageDetails({imageId}); // Fetch image details using the imageId
-      if (imageDetails) {
-        console.log('Fetched image details:', imageDetails); // Log the fetched image details
-        // setname(imageDetails.name); // Set the name from the fetched image details
-        // setSelectedEvent(imageDetails.eventName); // Set the selected event from the fetched image details
-        // setEventDate(new Date(imageDetails.eventDate)); // Set the event date from the fetched image details
-        // setLocation(imageDetails.location); // Set the location from the fetched image details
+      const imageDet = await getImageDetails(imageId);
+      setImageDetails(imageDet.persons);
+      console.log("Fetched image details:", imageDet.persons);
+      console.log("Fetched image details:", imageDetails);
+      if (imageDet) {
+        if (Array.isArray(imageDet.persons) && imageDet.persons.length > 0) {
+          setHasPerson(true);
+        } else {
+          console.log("❌ No persons found in the image.");
+        }
       } else {
         console.log('No image details found for this ID!');
       }
     }
     catch (error) {
-      console.error('Failed to fetch imagedata:', error);
-    }
+      console.error('Error fetching image details:', error);
+    }      
   };
 
     fetchEvents(); // Call the inner async function
-  }, []);
-  // Fetch events data from API
-  // useEffect(() => {
-  //     fetch(baseUrl + 'api/Image/getAllEvents') // Replace with your actual API endpoint
-  //       .then(response => response.json())
-  //       .then(data => {
-  //         if (data.length > 0) {
-  //           // Prepare data for SelectList
-  //           const eventData = data.map(event => ({
-  //             key: event.id.toString(), // Unique key for each event
-  //             value: event.name, // Display the event name
-  //           }));
-  //           setEventData(eventData); // Set the events for the dropdown
-  //         } else {
-  //           console.log('No events found!');
-  //         }
-  //         //console.log(eventData)
-  //       })
-  //       .catch(error => {
-  //         console.error('Error fetching events:', error);
-  //       });
-  //   }, []);
-
-
-
-
-  // const onChange = (event, selectedDate) => {
-  //   const currentDate = selectedDate || eventDate;
-  //   setShowDatePicker(false); // Automatically hide the picker after selection on Android
-  //   setEventDate(currentDate);
-  // };
-
-  // // Function to show date picker
-  // const showDatepicker = () => {
-  //   setShowDatePicker(true); // Show the date picker when the user clicks the button
-  // };
-  // Handle Save action
+  }, [imageId]);
+ 
+  
   const handleSave = async () => {
-    console.log('Saved:', { selectedEvent, eventDate, location });
-    const imageId = 33;
-    try {
-      // Prepare the formatted date as 'YYYY-MM-DD'
-      const formattedDate = eventDate.toISOString().split('T')[0];
-
-      // Prepare the contact data to send to the API (this is just the data you want to send)
-      const contactData = {
-        selectedEvent,
-        formattedDate,
-        location
-      };
-
-      // Build the URL with query parameters (as per your server-side expectations)
-      const url = `${baseUrl}api/Image/EditImageData?imageId=${imageId}&EventName=${encodeURIComponent(selectedEvent)}&EventDate=${encodeURIComponent(formattedDate)}&Location=${encodeURIComponent(location)}`;
-
-      // Make the POST request with fetch
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // If you want to send the contact data as JSON in the body, uncomment the next line
-        // body: JSON.stringify(contactData),
-      });
-
-      // Check if the response is ok (status code 200-299)
-      if (!res.ok) {
-        // If the response is not successful, attempt to read it as plain text
-        const errorDetails = await res.text();
-        console.error('Request failed with status:', res.status, errorDetails);
-      } else {
-        // If the response is successful, parse it as JSON
-        const responseData = await res.json();
-        console.log('Data saved successfully:', responseData);
-      }
-    } catch (error) {
-      // Log any other errors that occur during the fetch request
-      console.error('Error during fetch:', error);
-    }
+    console.log('Saved:', { persondata,selectedEvent, eventDate, location });
+    
   };
 
 
   return (
     <SafeAreaView >
       <View >
+      {hasPerson && (
+  <View>
+    <View style={{ position: 'relative', left: '20%' }}>
+      <Image
+      
+        source={{uri: baseUrl +imageDetails[0].person_path}}
+        style={{ height: 60, width: "20%" }}
+      />
+    </View>
 
+    <View style={styles.nameContainer}>
+      <Text style={styles.label}>Name</Text>
+      <TextInput
+                    style={styles.inputname}
+                    value={name}
+                    onChangeText={(text) => setname(text)} // Update state on text change
+                    placeholder="Enter name"
+                    placeholderTextColor={colors.grey}
+                  />
+      <Text
+        style={styles.label}
+        onPress={() => 
+          navigation.navigate('PersonInfo', {
+            imageDetails,
+            onGoBack: (data) => {
+              console.log('Got dataaa from PersonInfo:', data);
+              setpersondata(data); 
+            },
+          })
+          } 
+        >
+        More...
+      </Text>
+    </View>
+  </View>
+)}
 
-        {/* Bottom Half - Event Form Section */}
-        <View >
-          <View style={{ position: 'relative', left: '20%' }}>
-
-            <Image
-              source={require("..\\src\\images\\ff2232602f8c4ac486a8e0b66ebe5f0a.jpg")}
-              style={{ height: 60, width: "20%" }}  // Correctly set the height and width
-            />
-
-          </View>
-          <View style={styles.nameContainer}>
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-              style={styles.inputname}
-              value={name}
-              onChangeText={(text) => setname(text)} // Update state on text change
-              placeholder="Enter name"
-              placeholderTextColor={colors.grey}
-            />
-            <Text style={styles.label} onPress={() => navigation.navigate('PersonInfo')}>More...</Text>
-            {/* <Icon name="check-circle" size={30} color={colors.primary} /> */}
-          </View>
           <Text style={styles.label}>Event</Text>
 
           <View style={{ flexDirection: 'row' }}>
             <View style={{ flex: 1, width: '100%' }}>
-              {/* <SelectList
-                data={eventData}
-                setSelected={setSelectedEvent}
-                placeholder="Select an event"
-                save="value"
-                boxStyles={styles.dropdown}
-                inputStyles={[styles.input, { color: 'black' }]}
-                searchInputStyle={{ color: 'black' }}
-                dropdownTextStyles={{ color: 'black' }}  
-              /> */}
+             
               <TouchableOpacity onPress={handleSelectListPress}>
                 <SelectList
                   data={eventData}
@@ -221,13 +167,7 @@ const Editscreen = ({ imageId }) => {
             />
           </View>
 
-          {/* <Text style={styles.label}>Event Date</Text>
-
-          <TouchableOpacity onPress={showDatepicker} style={styles.datePickerButton}>
-            <Text style={styles.datePickerButtonText}>
-              {eventDate ? eventDate.toLocaleDateString() : 'Select Date'}
-            </Text>
-          </TouchableOpacity> */}
+         
 
           <Text style={styles.label}>Event Date</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
@@ -269,18 +209,24 @@ const Editscreen = ({ imageId }) => {
             <Text style={styles.label}>Location</Text>
             <TextInput
               style={styles.inputname}
-              value={name}
-              onChangeText={(text) => setlocation(text)} // Update state on text change
-              placeholder="Enter name"
+              value={location}
+              onChangeText={(text) => setLocation(text)} // Update state on text change
+              placeholder="Enter Location"
               placeholderTextColor={colors.grey}
+              color={colors.dark}
             />
+{/* <ScrollView nestedScrollEnabled={true}>
+  <Location />
+</ScrollView> */}
+
+
           </View>
           {/* Save Button */}
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Text style={styles.saveButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      
     </SafeAreaView>
   );
 };
@@ -295,14 +241,12 @@ const styles = StyleSheet.create({
     gap: 20
   },
   inputname: {
-    height: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.dark,
-    size: 1,
-    flex: 1,
-    fontSize: 15,
-    backgroundColor: colors.secondary,
-    color: 'white',
+    borderBottomWidth: 1, // Creates the underline
+       borderBottomColor: colors.dark, // Set the color for the underline
+       paddingVertical: 5, // Vertical padding for the input field
+       flex: 1, // Take the remaining space for the input
+       fontSize: 16, // Adjust font size for input text
+       color: colors.dark
 
   },
 

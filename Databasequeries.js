@@ -76,9 +76,10 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
     };
 
     const getImageDetails = async (imageId) => {
-      const database = await db;
+      console.log("Fetching image details for ID:", imageId);
+    
       return new Promise((resolve, reject) => {
-        database.transaction(tx => {
+        db.transaction(tx => {
           tx.executeSql(
             `SELECT 
               i.id AS image_id,
@@ -90,41 +91,70 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
               i.is_deleted,
               i.hash,
     
-              l.id AS location_id,
-              l.name AS location_name,
-              l.latitude,
-              l.longitude,
-    
               p.id AS person_id,
               p.name AS person_name,
               p.gender,
-              p.path AS person_path,
-    
-              e.id AS event_id,
-              e.name AS event_name
+              p.path AS person_path
     
             FROM Image i
-            LEFT JOIN Location l ON i.location_id = l.id
             LEFT JOIN ImagePerson ip ON i.id = ip.image_id
             LEFT JOIN Person p ON ip.person_id = p.id
-            LEFT JOIN ImageEvent ie ON i.id = ie.image_id
-            LEFT JOIN Event e ON ie.event_id = e.id
             WHERE i.id = ?;`,
             [imageId],
             (txObj, { rows }) => {
-              const results = [];
-              for (let i = 0; i < rows.length; i++) {
-                results.push(rows.item(i));
+              if (rows.length === 0) {
+                console.error("No image found with ID:", imageId);
+                resolve(null);  // No data found
+                return;
               }
-              resolve(results);
+    
+              const persons = new Map();
+              let imageData = null;
+    
+              for (let i = 0; i < rows.length; i++) {
+                const row = rows.item(i);
+    
+                if (!imageData) {
+                  imageData = {
+                    image_id: row.image_id,
+                    image_path: row.image_path,
+                    capture_date: row.capture_date,
+                    event_date: row.event_date,
+                    last_modified: row.last_modified,
+                    is_sync: row.is_sync,
+                    is_deleted: row.is_deleted,
+                    hash: row.hash,
+                    persons: [],
+                  };
+                }
+    
+                if (row.person_id && !persons.has(row.person_id)) {
+                  persons.set(row.person_id, {
+                    person_id: row.person_id,
+                    person_name: row.person_name,
+                    gender: row.gender,
+                    person_path: row.person_path
+                  });
+                }
+              }
+    
+              if (imageData) {
+                imageData.persons = Array.from(persons.values());
+              }
+    
+              resolve(imageData);
             },
             (txObj, error) => {
+              console.error("SQL Error:", error);
               reject(error);
             }
           );
         });
       });
     };
+    
+    
+    
     
 //person 
 
