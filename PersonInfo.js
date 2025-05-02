@@ -5,38 +5,77 @@ import { RadioButton } from 'react-native-paper';
 import colors from './theme/colors';
 
 const PersonInfo = ({ route }) => {
-  const { imageDetails, onGoBack } = route.params;
+ // const { imageDetails, onGoBack } = route.params;
+ //const route = useRoute();
+ const { imageDetails } = route.params;
+
   const [name, setName] = useState('');
   const [gender, setGender] = useState('Male');
   
   const navigation = useNavigation();
   const hasSentData = useRef(false);
+  
+
 
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        if (!hasSentData.current && onGoBack) {
-          onGoBack({ name, gender ,  personPath: imageDetails?.[0]?.person_path || '',
-          });
+        // Only send data if not already sent
+        if (!hasSentData.current) {
           hasSentData.current = true;
+           // Go back to the previous screen
+
+          // Send data back and navigate to 'Edit' screen
+          navigation.navigate('Edit', {
+            imageId: imageDetails[0].id,
+            personData: {
+              name,
+              gender,
+              personPath: imageDetails?.[0]?.person_path || '',
+            },
+          });
+          navigation.goBack();
+          
         }
-        return false; 
       };
 
+      // Listen for hardware back press
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      // Cleanup listener on unmount
       return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [name, gender,imageDetails])
+    }, [name, gender, imageDetails, navigation]) // Add navigation as dependency
   );
+  
+  // Send data back on unmount (if not already sent)
   useEffect(() => {
     return () => {
-      if (!hasSentData.current && onGoBack) {
-        onGoBack({ name, gender,  personPath: imageDetails?.[0]?.person_path || '',
+      if (!hasSentData.current) {
+        navigation.navigate('Edit', {
+          imageId: imageDetails[0].id,
+          personData: {
+            name,
+            gender,
+            personPath: imageDetails?.[0]?.person_path || '',
+          },
         });
         hasSentData.current = true;
       }
     };
   }, []);
-
+  
+  
+  
+  // useEffect(() => {
+  //   return () => {
+  //     if (!hasSentData.current && onGoBack) {
+  //       onGoBack({ name, gender,  personPath: imageDetails?.[0]?.person_path || '',
+  //       });
+  //       hasSentData.current = true;
+  //     }
+  //   };
+  // }, []);
+  
 
   return (
     <View style={styles.container}>
