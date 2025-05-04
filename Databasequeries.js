@@ -658,9 +658,11 @@ const getDataByDate = (date) => {
           database.transaction(tx => {
             tx.executeSql(
               `
-              SELECT i.* FROM image i
+              SELECT i.* 
+              FROM image i
               JOIN imagePerson ip ON i.id = ip.image_id
-              WHERE ip.person_id = ?
+              WHERE ip.person_id = ? AND i.is_deleted = 0
+
               `,
               [person_id],
               (tx, results) => {
@@ -726,6 +728,7 @@ const getDataByDate = (date) => {
 FROM person p
 JOIN imagePerson ip ON p.id = ip.person_id
 JOIN image i ON i.id = ip.image_id
+WHERE i.is_deleted = 0
 GROUP BY p.id;
 `,
 
@@ -768,7 +771,7 @@ GROUP BY p.id;
           });
         });
       };
-      //grouping 
+      
       const getEventsByImageId = (imageId) => {
         return new Promise((resolve, reject) => {
             // Step 1: Fetch all event_id values related to the image from imageevent table
@@ -825,6 +828,7 @@ GROUP BY p.id;
             });
         });
     };
+    //grouping 
     const getImagesGroupedByDate = () => {
       return new Promise((resolve, reject) => {
         db.transaction(tx => {
@@ -1030,13 +1034,35 @@ GROUP BY p.id;
         });
       });
     };
+    const markImageAsDeleted = async (imageId) => {
+      const database = await db;
+      return new Promise((resolve, reject) => {
+        database.transaction(tx => {
+          tx.executeSql(
+            `UPDATE image SET is_deleted = 1 WHERE id = ?`,
+            [imageId],
+            (tx, result) => {
+              if (result.rowsAffected > 0) {
+                resolve(true); // Successfully marked as deleted
+              } else {
+                resolve(false); // No image found with given ID
+              }
+            },
+            error => {
+              console.error("Error marking image as deleted:", error);
+              reject(error);
+            }
+          );
+        });
+      });
+    };
     
     
     
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editData,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
-  getImagesByEventId
+  getImagesByEventId,markImageAsDeleted
 
 };
 

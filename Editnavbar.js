@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import colors from './theme/colors';
 import Editscreen from './Editscreen';
 import Detailsscreen from './Detailsscreen';
+import { markImageAsDeleted } from './Databasequeries';
 
 const Tab = createBottomTabNavigator();
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -31,13 +32,26 @@ const Editnavbar = ({ imageId }) => {
       'Confirm Deletion',
       `Are you sure you want to ${action}?`,
       [
-        { text: 'Yes', onPress: () => console.log(`${action} Confirmed`) },
+        { text: 'Yes', onPress: deleteImage },
         { text: 'No', style: 'cancel', onPress: () => console.log(`${action} Cancelled`) },
       ],
       { cancelable: true }
     );
   };
+const deleteImage=async () => {
+  try {
+    const success = await markImageAsDeleted(imageId);
+    if (success) {
+      console.log(`Image ${imageId} marked as deleted`);
+      // Optionally refresh UI or show a toast
+    } else {
+      console.log("No image found to delete.");
+    }
+  } catch (error) {
+    console.error("Error deleting image:", error);
+  }
 
+}
   const showDeletePopup = () => {
     Alert.alert(
       'Delete Options',
