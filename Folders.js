@@ -6,6 +6,7 @@ import FoldersData from './ViewModels/FoldersData';
 
 const Folders = ({ route }) => {
     const { data } = route.params || {};
+    //console.log('Data received in Folders:', data); // Log the received data
     const [result, setResult] = useState([]);
     
     const navigation = useNavigation();
@@ -19,7 +20,7 @@ const Folders = ({ route }) => {
     }, []);
 
 
-
+console.log('Result here:', result); 
     const handleNavigation = (id,name) => {
         //console.log(result);
         navigation.navigate("Images", { data: data+';'+id+';'+name });
@@ -39,7 +40,11 @@ const Folders = ({ route }) => {
                             style={[styles.folderborder, { borderColor: colors.primary }]}
                         >
                             <Image
-                                source={{ uri: baseUrl + item.imagePath }}   // <<< this loads your imagePath
+                                source={{ 
+                                    uri: item.imagePath.startsWith('file://') || item.imagePath.startsWith('content://') || item.imagePath.startsWith('http')
+                                    ? item.imagePath
+                                    : baseUrl + item.imagePath,
+                                 }}   // <<< this loads your imagePath
                                 style={styles.image}
                             />
                             <Text style={styles.imageName}>

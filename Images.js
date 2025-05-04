@@ -44,7 +44,6 @@ const Images = ({ route }) => {
     loadData(); 
   }, [data, fetchedPhotosFromHook]); 
 
-
   const handleImagePress = (item) => {
     navigation.navigate("ViewPhoto", { item: item, data: data });
   };

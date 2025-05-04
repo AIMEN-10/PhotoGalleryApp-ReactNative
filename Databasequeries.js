@@ -114,8 +114,8 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
     
               for (let i = 0; i < rows.length; i++) {
                 const row = rows.item(i);
-                console.log('Raw location_id:', row.location_id);
-                console.log('Type:', typeof row.location_id);
+                // console.log('Raw location_id:', row.location_id);
+                // console.log('Type:', typeof row.location_id);
                 
                 if (!imageData) {
                   imageData = {
@@ -366,23 +366,39 @@ const insertPerson = async ({person}) => {
 };
 
 
-    const getDataByID = () => {
-        db.transaction((txn) => {
-            txn.executeSql(
-                `select * from Person where ID=?`,
-                [ID],
-                (t, res) => {
-                    console.log(res.rows.item(0));
-                    setName(res.rows.item(0).pName)
-                },
-                (error) => { console.log(error.message) }
-            );
-        });
-    }
-    const Reset = () => {
-        setAllPersons(tempAllPerson.Reset)
+const getDataByDate = (date) => {
+  return new Promise((resolve, reject) => {
+    db.transaction((txn) => {
+      txn.executeSql(
+        `SELECT id, path FROM Image WHERE capture_date = ? AND is_deleted = 0`,
+        [date],
+        (t, res) => {
+          const images = [];
+          
+          // Loop through all rows and collect the images
+          for (let i = 0; i < res.rows.length; i++) {
+            const image = res.rows.item(i);
+            images.push({ id: image.id, path: image.path });
+          }
 
-    }
+          if (images.length > 0) {
+            resolve(images); // Return all images
+          } else {
+            resolve([]); // No images found for the date
+          }
+        },
+        (error) => {
+          console.error('SQL Error:', error.message);
+          reject(error);
+        }
+      );
+    });
+  });
+};
+
+
+
+   
     const DeletetAllData = () => {
         
         db.transaction(txn => {
@@ -752,6 +768,7 @@ GROUP BY p.id;
           });
         });
       };
+      //grouping 
       const getEventsByImageId = (imageId) => {
         return new Promise((resolve, reject) => {
             // Step 1: Fetch all event_id values related to the image from imageevent table
@@ -808,14 +825,218 @@ GROUP BY p.id;
             });
         });
     };
+    const getImagesGroupedByDate = () => {
+      return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+          tx.executeSql(
+            `
+            SELECT i.capture_date, i.path
+            FROM Image i
+            INNER JOIN (
+              SELECT capture_date, MIN(id) as min_id
+              FROM Image
+              WHERE is_deleted = 0
+              GROUP BY capture_date
+            ) grouped ON i.id = grouped.min_id
+            ORDER BY i.capture_date DESC
+            `,
+            [],
+            (tx, results) => {
+              const grouped = [];
+          
+              for (let i = 0; i < results.rows.length; i++) {
+                const row = results.rows.item(i);
+                grouped.push({
+                  name: row.capture_date,
+                  imagePath: row.path,
+                });
+              }
+          
+              resolve(grouped);
+            },
+            (tx, error) => {
+              console.error('❌ SQL execution failed:', error);
+              reject(error);
+            }
+          );
+          
+        });
+      });
+    };
     
+    const groupImagesByLocation = () => {
+      return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+          tx.executeSql(
+            `
+            SELECT location.id AS location_id, location.name AS location_name, image.path
+            FROM location
+            JOIN image ON image.location_id = location.id
+            WHERE image.is_deleted = 0
+            ORDER BY location.id, image.id
+            `,
+            [],
+            (tx, results) => {
+              const grouped = [];
+              const addedLocations = new Set();
     
+              for (let i = 0; i < results.rows.length; i++) {
+
+                const row = results.rows.item(i);
+                // If this location hasn't been added yet, include its first non-deleted image
+                if (!addedLocations.has(row.location_id)) {
+                  grouped.push({
+                    id: row.location_id,
+                    name: row.location_name,
+                    imagePath: row.path, // only one image
+                  });
+                  addedLocations.add(row.location_id);
+                }
+              }
     
+              resolve(grouped);
+            },
+            (tx, error) => {
+              console.error("❌ SQL Error:", error.message);
+              reject(error);
+            }
+          );
+        });
+      });
+    };
+    
+    const getImagesByLocationId = (locationId) => {
+      return new Promise((resolve, reject) => {
+
+        db.transaction(tx => {
+          tx.executeSql(
+            `
+            SELECT id, path 
+            FROM image 
+            WHERE location_id = ? AND is_deleted = 0
+            `,
+            [locationId],
+            (tx, results) => {
+              const images = [];
+    
+              for (let i = 0; i < results.rows.length; i++) {
+                const row = results.rows.item(i);
+                images.push({
+                  id: row.id,
+                  path: row.path
+                });
+              }
+    
+              resolve(images);
+            },
+            (tx, error) => {
+              console.error('Error fetching images by location:', error.message);
+              reject(error);
+            }
+          );
+        });
+      });
+    };
     
 
+    const getImagesGroupedByEvent = () => {
+      return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+          // 1. Get all events
+          tx.executeSql(
+            `SELECT id AS event_id, name AS event_name FROM Event`,
+            [],
+            (tx, eventResults) => {
+              const groups = [];
+              const totalEvents = eventResults.rows.length;
+    
+              if (totalEvents === 0) return resolve([]); // no events
+    
+              let processed = 0;
+    
+              for (let i = 0; i < totalEvents; i++) {
+                const event = eventResults.rows.item(i);
+    
+                // 2. For each event, get one image where is_deleted = 0
+                tx.executeSql(
+                  `
+                  SELECT img.id AS image_id, img.path
+                  FROM imageEvent ie
+                  JOIN Image img ON img.id = ie.image_id
+                  WHERE ie.event_id = ? AND img.is_deleted = 0
+                  LIMIT 1
+                  `,
+                  [event.event_id],
+                  (tx, imageResults) => {
+                    if (imageResults.rows.length > 0) {
+                      const image = imageResults.rows.item(0);
+                      groups.push({
+                        name: event.event_name,
+                          id: event.event_id,
+                          imagePath: image.path,
+                        
+                      });
+                    }
+    
+                    processed++;
+                    if (processed === totalEvents) {
+                      resolve(groups);
+                    }
+                  },
+                  (tx, error) => {
+                    console.error("Error fetching image for event:", error.message);
+                    processed++;
+                    if (processed === totalEvents) {
+                      resolve(groups);
+                    }
+                  }
+                );
+              }
+            },
+            (tx, error) => {
+              console.error("Error fetching events:", error.message);
+              reject(error);
+            }
+          );
+        });
+      });
+    };
+    const getImagesByEventId = (eventId) => {
+      return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+          tx.executeSql(
+            `
+            SELECT img.id, img.path
+            FROM imageEvent ie
+            JOIN Image img ON img.id = ie.image_id
+            WHERE ie.event_id = ? AND img.is_deleted = 0
+            `,
+            [eventId],
+            (tx, results) => {
+              const images = [];
+              for (let i = 0; i < results.rows.length; i++) {
+                images.push({
+                  id: results.rows.item(i).id,
+                  path: results.rows.item(i).path
+                });
+              }
+              resolve(images);
+            },
+            (tx, error) => {
+              console.error('Failed to fetch images by event ID:', error.message);
+              reject(error);
+            }
+          );
+        });
+      });
+    };
+    
+    
+    
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editData,checkIfHashExists,getImageData,getLocationById,
-  getEventsByImageId
+  getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
+  getImagesByEventId
 
 };
 

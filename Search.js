@@ -211,7 +211,8 @@ const Search = ({ route }) => {
               placeholderTextColor={colors.grey}
             />
             </View>
-              <MapView
+            {/* for map  */}
+              {/* <MapView
               style={{ width: '100%', height: 200, }}
               initialRegion={{
                 latitude: 33.64252919601249,
@@ -233,7 +234,7 @@ const Search = ({ route }) => {
                   strokeWidth={2} />
               }
 
-            </MapView>
+            </MapView> */}
                {/* <GooglePlacesAutocomplete
             placeholder="Search for a location"
             onPress={handleLocationSelect}

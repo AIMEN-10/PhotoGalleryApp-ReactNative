@@ -1,5 +1,5 @@
 
-import { getImagesForPerson } from "../Databasequeries";
+import { getImagesForPerson,getDataByDate,getImagesByLocationId,getImagesByEventId} from "../Databasequeries";
 
 
 const Filteredimages =async (data) => {
@@ -12,12 +12,19 @@ const Filteredimages =async (data) => {
         //console.log("Images for Person:", images); // <-- Add this
         return images;
 }
-else if (data.includes( "Event")) {
-    
+else if (parts[0]==="Event") {
+   const images=await getImagesByEventId(parts[1]);
+    return images;
  }
-else if( data.includes( "Location") ){
-
+else if( parts[0]==="Location") {
+    const images=await getImagesByLocationId(parts[1]);
+    return images;
 }
+else if(parts[0]==="Date") {
+    const images=await getDataByDate(parts[2]);
+    return images;
+}
+
 else {
 console.log("No matching condition found for data:", data); // <-- Add this
     return []; // Return an empty array or handle the case as needed
