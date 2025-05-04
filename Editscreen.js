@@ -224,7 +224,7 @@ const Editscreen = (props) => {
                 style={styles.label}
                 onPress={() =>
                   navigation.navigate('PersonInfo', {
-                    imageDetails
+                    imageDetails,screen :'edit'
                   }
                     // onGoBack: (data) => {
                     //   console.log('Got dataaa from PersonInfo:', data);

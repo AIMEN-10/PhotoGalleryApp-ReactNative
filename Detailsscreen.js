@@ -2,18 +2,21 @@ import React, { useEffect, useState } from 'react';
 import {
     View, Text, Image, SafeAreaView, StyleSheet, FlatList, ScrollView,
 } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+
 import { getImageDetails, getLocationById, getEventsByImageId } from './Databasequeries'; // Adjust import based on your file structure
 import colors from './theme/colors';
 
 const Detailsscreen = (props) => {
     const { imageId } = props;
     console.log('Image ID:', imageId);
-    const [imageDetails, setImageDetails] = useState([]);
+    //const [imageDetails, setImageDetails] = useState([]);
     const [imagedata, setimagedata] = useState([]);
-    const [data, setData] = useState(null);
+    const [imageDetails, setData] = useState(null);
     const [hasPerson, setHasPerson] = useState(false);
     const [locationname, setlocationname] = useState(null);
     const [events, SetEvents] = useState([]);
+  const navigation = useNavigation();
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -90,19 +93,19 @@ const Detailsscreen = (props) => {
                     <View>
                         <View style={{ position: 'relative', left: '20%' }}>
                             <Image
-                                source={{ uri: baseUrl + data[0].person_path }}
+                                source={{ uri: baseUrl + imageDetails[0].person_path }}
                                 style={{ height: 60, width: "20%" }}
                             />
                         </View>
 
                         <View style={styles.nameContainer}>
-                            <Text style={styles.label}>Name : {data[0].person_name}</Text>
+                            <Text style={styles.label}>Name : {imageDetails[0].person_name}</Text>
 
                             <Text
                                 style={styles.label}
                                 onPress={() =>
                                     navigation.navigate('PersonInfo', {
-                                        imageDetails
+                                        imageDetails,screen : 'Details',
                                     })
                                 }
                             >

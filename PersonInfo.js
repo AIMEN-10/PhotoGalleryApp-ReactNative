@@ -7,7 +7,8 @@ import colors from './theme/colors';
 const PersonInfo = ({ route }) => {
  // const { imageDetails, onGoBack } = route.params;
  //const route = useRoute();
- const { imageDetails } = route.params;
+ const { imageDetails, screen } = route.params;
+ console.log(imageDetails);
   const [name, setName] = useState('');
   const [gender, setGender] = useState('Male');
   
@@ -21,25 +22,32 @@ const PersonInfo = ({ route }) => {
       const onBackPress = () => {
         if (!hasSentData.current) {
           hasSentData.current = true;
-          const imageId = imageDetails?.[0]?.person_id;
          
+          const imageId = imageDetails?.[0]?.person_id;
+          if (screen !== 'Details') {
         const personData = [
           {
-            name,
-            gender,
+            name: name || 'Unknown',   // If `name` is null or empty, use 'Unknown'
+            gender: gender || 'U',
             personPath: imageDetails?.[0]?.person_path || '',
           },
         ];
-
-        // ✅ Just navigate to 'Edit' — no goBack()
-        navigation.navigate('Edit', {
+      
+          navigation.navigate('Edit', {
           imageId,
           personData,
         });
-          
+        navigation.goBack();
+      }
+      else{
+        navigation.navigate('Edit', {
+          imageId,
+         
+        });
           navigation.goBack();
+      }
           
-        }
+    }
       };
 
       // Listen for hardware back press
@@ -50,34 +58,22 @@ const PersonInfo = ({ route }) => {
     }, [name, gender, imageDetails, navigation]) // Add navigation as dependency
   );
   
-  // Send data back on unmount (if not already sent)
-  // useEffect(() => {
-  //   return () => {
-  //     if (!hasSentData.current) {
-  //       navigation.navigate('Edit', {
-  //         imageId: imageDetails[0].id,
-  //         personData: {
-  //           name,
-  //           gender,
-  //           personPath: imageDetails?.[0]?.person_path || '',
-  //         },
-  //       });
-  //       hasSentData.current = true;
-  //     }
-  //   };
-  // }, []);
+  useEffect(() => {
+    if (screen === 'Details') {
+      console.log('Details screen is active');
+      const person = imageDetails[0];
+
+      if (person?.person_name) setName(person.person_name);
+      if (person?.gender) setGender(person.gender);
+    }
+    else{
+      console.log('PersonInfo screen is active');
+    }
+  }, [screen]); // Add screen to dependencies if it can change
   
   
   
-  // useEffect(() => {
-  //   return () => {
-  //     if (!hasSentData.current && onGoBack) {
-  //       onGoBack({ name, gender,  personPath: imageDetails?.[0]?.person_path || '',
-  //       });
-  //       hasSentData.current = true;
-  //     }
-  //   };
-  // }, []);
+ 
   
 
   return (
