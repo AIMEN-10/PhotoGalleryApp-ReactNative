@@ -1,57 +1,121 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, SafeAreaView, TextInput, Alert, ScrollView, FlatList } from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import colors from './theme/colors';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import AddEventPopup from './AddEventPopup';
 import Location from './Location';
-import { getAllEvents, getImageDetails } from './Databasequeries';
+import { getAllEvents, getImageDetails, editData } from './Databasequeries';
 import { useFocusEffect } from '@react-navigation/native';
-// const Editscreen = ( {imageId }) => {
+import MultipleEvents from './MultipleEvents';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const Editscreen = (props) => {
-  //console.log("Editscreen props:", props);
 
   const { imageId, personData } = props;
-
-
   const navigation = useNavigation();
   const [name, setname] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [eventData, setEventData] = useState([]);
   const [location, setLocation] = useState(''); // Store location
-  const [eventDate, setEventDate] = useState(' '); // Store the selected date
+  const [eventDate, setEventDate] = useState(''); // Store the selected date
   // const [showDatePicker, setShowDatePicker] = useState(false); // Control visibility of the date picker
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [modaleventsVisible, seteventsModalVisible] = useState(false);
+
   const [imageDetails, setImageDetails] = useState([]);
   const [hasPerson, setHasPerson] = useState(false);
   const [persondata, setpersondata] = useState([]);
 
+  const [receivedpersondata, setreceivedpersondata] = useState([]);
+
+  const [personDataa, setPersonDataa] = useState([]);
+  const [imageIdd, setImageIdd] = useState(null);
+  const [received, setReceived] = useState(false);
+
+
+  const saveToStorageOrBackend = async (data) => {
+    try {
+      // Get the existing data from AsyncStorage
+      const existingData = await AsyncStorage.getItem('savedPersonData');
+      const parsedData = existingData ? JSON.parse(existingData) : [];
+
+      // Append the new data to the existing array
+      const updatedData = [...parsedData, data];
+
+      // Save the updated array back to AsyncStorage
+      await AsyncStorage.setItem('savedPersonData', JSON.stringify(updatedData));
+      console.log('📦 Data saved to AsyncStorage:', updatedData);
+    } catch (e) {
+      console.error('❌ Failed to save:', e);
+    }
+  };
+  const getLatestSavedValue = async () => {
+    try {
+      // Fetch the saved data from AsyncStorage
+      const savedData = await AsyncStorage.getItem('savedPersonData');
+      const parsedData = savedData ? JSON.parse(savedData) : [];
+
+      // Get the latest record (last element in the array)
+      const latestRecord = parsedData[parsedData.length - 1];
+
+      if (latestRecord) {
+        console.log('📦 Latest Saved Record:', latestRecord);
+        return latestRecord;
+      } else {
+        console.log('❌ No saved data found');
+        return null;
+      }
+    } catch (e) {
+      console.error('❌ Failed to fetch saved data:', e);
+      return null;
+    }
+  };
 
   useFocusEffect(
     React.useCallback(() => {
-      const personData = props.route?.params?.personData;
-      if (personData) {
-        console.log('Received person data:', personData);
-        setpersondata(personData);
-        props.navigation.setParams({ personData: undefined }); // clear to avoid re-trigger
+      const incomingPersonData = props.route?.params?.personData;
+      const incomingImageId = props.route?.params?.imageId;
+
+      if (!received && (incomingPersonData || incomingImageId)) {
+        if (incomingPersonData) {
+          console.log('✅ Received person data:', incomingPersonData);
+          saveToStorageOrBackend(incomingPersonData);
+          setPersonDataa(incomingPersonData);
+        }
+
+        if (incomingImageId) {
+          console.log('✅ Received imageId:', incomingImageId);
+          setImageIdd(incomingImageId);
+        }
+
+        setReceived(true); // Lock this branch after first use
       }
-    }, [props.route?.params?.personData])
+    }, [props.route?.params, received])
   );
-  
+
+  // Only log when both are valid
+  useEffect(() => {
+    if (imageIdd !== null && personDataa.length > 0) {
+      console.log('✅ FINAL imageId:', imageIdd);
+      console.log('✅ FINAL personData:', personDataa);
+
+      // You can now safely save or process
+    }
+  }, [imageIdd, personDataa]);
+
 
 
   const Addevent = () => {
     setModalVisible(true);
   };
-  const handleSelectListPress = async () => {
-    await fetchEvents(); // Fetch events when the SelectList is pressed
-  };
+
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShow(Platform.OS === 'ios' ? true : false); // Hide the picker on Android after selection
@@ -70,35 +134,27 @@ const Editscreen = (props) => {
     return `${year}-${month}-${day}`;
   };
   const currentDateFormatted = formatDate(new Date());
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const events = await getAllEvents();
-        const formattedData = events.map(event => ({
-          key: event.id,
-          value: event.name,
-        }));
 
-        setEventData(formattedData);
-      } catch (error) {
-        console.error('Failed to fetch events:', error);
-      }
+  useEffect(() => {
+
+    const fetchEvents = async () => {
+
       try {
-        if(imageId) {
-        const imageDet = await getImageDetails(imageId);
-        setImageDetails(imageDet.persons);
-        console.log("Fetched image details:", imageDet.persons);
-        console.log("Fetched image details:", imageDetails);
-        if (imageDet) {
-          if (Array.isArray(imageDet.persons) && imageDet.persons.length > 0) {
-            setHasPerson(true);
+        if (imageId) {
+          const imageDet = await getImageDetails(imageId);
+          setImageDetails(imageDet.persons);
+          console.log("Fetched image details:", imageDet.persons);
+          console.log("Fetched image details:", imageDetails);
+          if (imageDet) {
+            if (Array.isArray(imageDet.persons) && imageDet.persons.length > 0) {
+              setHasPerson(true);
+            } else {
+              console.log("❌ No persons found in the image.");
+            }
           } else {
-            console.log("❌ No persons found in the image.");
+            console.log('No image details found for this ID!');
           }
-        } else {
-          console.log('No image details found for this ID!');
         }
-      }
       }
       catch (error) {
         console.error('Error fetching image details:', error);
@@ -106,13 +162,40 @@ const Editscreen = (props) => {
     };
 
     fetchEvents(); // Call the inner async function
-  }, [imageId]);
+  }, [imageId]); // Add imageId as a dependency
 
+  const clearAllAsyncStorage = async () => {
+    try {
+      await AsyncStorage.clear();
+      console.log('🗑️ All AsyncStorage data cleared!');
+    } catch (e) {
+      console.error('❌ Failed to clear AsyncStorage:', e);
+    }
+  };
+  const [selectedEvents, setSelectedEvents] = useState([]); 
 
+  const handleSelectedEvents = (events) => {
+
+    const selected = Object.keys(events).filter((key) => events[key]).map((key) => events[key]);
+    setSelectedEvents(selected); 
+   
+    console.log('Selected events:', selected);
+  };
   const handleSave = async () => {
-    console.log('Saved:', { persondata, selectedEvent, eventDate, location });
+    const latestValue = await getLatestSavedValue();
+
+    console.log('✅ Saved :', {
+      eventDate,
+      imageId,
+      location,
+      selectedEvents,
+      latestValue,
+    });
+    var result = editData(imageId, latestValue, selectedEvents, eventDate, location);
+    clearAllAsyncStorage()
 
   };
+
 
 
   return (
@@ -161,18 +244,18 @@ const Editscreen = (props) => {
         <View style={{ flexDirection: 'row' }}>
           <View style={{ flex: 1, width: '100%' }}>
 
-            <TouchableOpacity onPress={handleSelectListPress}>
-              <SelectList
-                data={eventData}
-                setSelected={setSelectedEvent} // Event selection
-                placeholder="Select an event"
-                save="value"
-                boxStyles={styles.dropdown}
-                inputStyles={[styles.input, { color: 'black' }]}
-                searchInputStyle={{ color: 'black' }}
-                dropdownTextStyles={{ color: 'black' }}
-              />
+            <TouchableOpacity onPress={() => seteventsModalVisible(true)}>
+              <Text style={styles.labels}>Select an event</Text>
             </TouchableOpacity>
+
+            <MultipleEvents
+              modalVisible={modaleventsVisible}
+              setModalVisible={seteventsModalVisible}
+              setSelectedEvents={handleSelectedEvents}
+            />
+
+
+
           </View>
           <TouchableOpacity onPress={Addevent}>
             <Icon name="add-circle" size={24} color={colors.primary} style={{ marginTop: 10 }} />
@@ -210,17 +293,7 @@ const Editscreen = (props) => {
           )}
         </View>
 
-        {/* Conditionally render DateTimePicker */}
-        {/* {showDatePicker && (
-            <DateTimePicker
-              testID="dateTimePicker"
-              value={date}
-              mode="date"
-              is24Hour={true}
-              display="default"
-              onChange={onChange}
-            />
-          )} */}
+
         <View style={styles.nameContainer}>
           <Text style={styles.label}>Location</Text>
           <TextInput
@@ -238,7 +311,7 @@ const Editscreen = (props) => {
 
         </View>
         {/* Save Button */}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave} >
           <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
       </View>
@@ -271,6 +344,12 @@ const styles = StyleSheet.create({
     color: colors.dark, // White color for labels
     fontSize: 14,
     marginBottom: 5,
+  },
+  labels: {
+    color: colors.dark, // White color for labels
+    fontSize: 16,
+    marginBottom: 5,
+    fontweight: 'bold',
   },
   // detailValue: {
   //   backgroundColor: '#0D6068', // Dark background for inputs to blend with the form container

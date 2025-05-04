@@ -14,6 +14,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import colors from './theme/colors';
 import Editscreen from './Editscreen';
+import Detailsscreen from './Detailsscreen';
 
 const Tab = createBottomTabNavigator();
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -195,7 +196,7 @@ const Editnavbar = ({ imageId }) => {
                     } else if (name === 'Edit') {
                       setModalData({ type: 'edit', content: Editscreen, props: { imageId: imageId } });
                     } else if (name === 'Details') {
-                      setModalData({ type: 'details', content: 'Details content here.' });
+                      setModalData({ type: 'details', content: Detailsscreen, props: { imageId: imageId }});
                     } else {
                       onPress?.();
                     }

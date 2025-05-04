@@ -8,7 +8,6 @@ const PersonInfo = ({ route }) => {
  // const { imageDetails, onGoBack } = route.params;
  //const route = useRoute();
  const { imageDetails } = route.params;
-
   const [name, setName] = useState('');
   const [gender, setGender] = useState('Male');
   
@@ -20,20 +19,24 @@ const PersonInfo = ({ route }) => {
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        // Only send data if not already sent
         if (!hasSentData.current) {
           hasSentData.current = true;
-           // Go back to the previous screen
+          const imageId = imageDetails?.[0]?.person_id;
+         
+        const personData = [
+          {
+            name,
+            gender,
+            personPath: imageDetails?.[0]?.person_path || '',
+          },
+        ];
 
-          // Send data back and navigate to 'Edit' screen
-          navigation.navigate('Edit', {
-            imageId: imageDetails[0].id,
-            personData: {
-              name,
-              gender,
-              personPath: imageDetails?.[0]?.person_path || '',
-            },
-          });
+        // ✅ Just navigate to 'Edit' — no goBack()
+        navigation.navigate('Edit', {
+          imageId,
+          personData,
+        });
+          
           navigation.goBack();
           
         }
@@ -48,21 +51,21 @@ const PersonInfo = ({ route }) => {
   );
   
   // Send data back on unmount (if not already sent)
-  useEffect(() => {
-    return () => {
-      if (!hasSentData.current) {
-        navigation.navigate('Edit', {
-          imageId: imageDetails[0].id,
-          personData: {
-            name,
-            gender,
-            personPath: imageDetails?.[0]?.person_path || '',
-          },
-        });
-        hasSentData.current = true;
-      }
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     if (!hasSentData.current) {
+  //       navigation.navigate('Edit', {
+  //         imageId: imageDetails[0].id,
+  //         personData: {
+  //           name,
+  //           gender,
+  //           personPath: imageDetails?.[0]?.person_path || '',
+  //         },
+  //       });
+  //       hasSentData.current = true;
+  //     }
+  //   };
+  // }, []);
   
   
   

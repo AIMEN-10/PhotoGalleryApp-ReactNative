@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Image, Text, StyleSheet, Pressable, PermissionsAndroid, Platform, Alert } from 'react-native';
 import { requestMediaLibraryPermission } from '../Permission';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
-import { getAllImageData, InsertImageData, DeletetAllData,insertPerson,linkImageToPerson } from '../Databasequeries';
+import { getAllImageData, InsertImageData, DeletetAllData, insertPerson, linkImageToPerson, checkIfHashExists } from '../Databasequeries';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -26,17 +26,17 @@ const ImageData = () => {
       if (hasPermission) {
         //await DeletetAllData();
         await getAllPhotos();
-        
+
 
         getAllImageData((data) => {
           const paths = data.map(item => ({
             id: item.id,    // Accessing the 'id' from the item
             path: item.path // Accessing the 'path' from the item
           }));
-          
+
           setPhotos(paths); // Set the photos state with the array of objects
         });
-        
+
 
 
 
@@ -56,7 +56,7 @@ const ImageData = () => {
   const sendImage = async (image) => {
     const { uri } = image;
     const fileName = uri.split('/').pop();  // Get the filename from the uri
-  
+
     // MIME type detection
     const getMimeType = (fileName) => {
       const extension = fileName.split('.').pop().toLowerCase();
@@ -69,16 +69,16 @@ const ImageData = () => {
       };
       return mimeMap[extension] || 'application/octet-stream';
     };
-  
+
     const mimeType = getMimeType(fileName);
-  
+
     const formData = new FormData();
     formData.append('file', {
       uri,
       name: fileName,  // Use the file name
       type: mimeType,   // Adjust MIME type accordingly
     });
-  
+
     try {
       // Replace `baseUrl` with your server URL
       const response = await fetch(`${baseUrl}image_processing`, {
@@ -88,10 +88,10 @@ const ImageData = () => {
           'Content-Type': 'multipart/form-data', // Important for form-data uploads
         },
       });
-  
+
       // Handle the server's response
       const result = await response.json();
-  
+
       // Always return 'results' in a consistent format
       if (response.ok) {
         if (Array.isArray(result)) {
@@ -116,7 +116,7 @@ const ImageData = () => {
       throw error;
     }
   };
-  
+
 
   const getAllPhotos = async () => {
     try {
@@ -136,49 +136,56 @@ const ImageData = () => {
           const { uri, timestamp } = edge.node.image;
           const captureDate = formatDate(new Date()); // Format the timestamp to YYYY-MM-DD
           const hash = generateHash(uri);
+          const exists = await checkIfHashExists(hash);
+          if (exists) {
+            console.log('🔁 Duplicate image skipped (hash already exists):', hash);
+            return;
+          }
+          else 
+          {
+            const imageId = await InsertImageData({
+              path: uri,
+              capture_date: captureDate,
+              last_modified: captureDate,
+              hash: hash,
+            });
 
-          const imageId=await InsertImageData({
-            path: uri,
-            capture_date: captureDate,
-            last_modified: captureDate,
-            hash: hash,
-          });
 
+            const result = await sendImage(edge.node.image); // Send image to server
+            if (result.message != "No faces found") {
+              // console.log('Image sent successfully:', result);
 
-          const result = await sendImage(edge.node.image); // Send image to server
-          if (result.message != "No faces found") {
-            // console.log('Image sent successfully:', result);
+              if (result.results.length > 0) {
+                // console.log('✅ Faces found:', result.results);
 
-            if (result.results.length > 0) {
-              // console.log('✅ Faces found:', result.results);
-            
-              // Loop through detected faces and insert each person into the database
-              for (const person of result.results) {
-                try {
-                  const personId = await insertPerson({
-                    name: person.name,
-                    path: person.path,
-                    gender: person.gender,
-                  });
-            
-                  console.log('Person inserted with ID:', personId);
-                  if (personId) {
-                    await linkImageToPerson({
-                      imageId: imageId,
-                      personId: personId,
+                // Loop through detected faces and insert each person into the database
+                for (const person of result.results) {
+                  try {
+                    const personId = await insertPerson({
+                      name: person.name,
+                      path: person.path,
+                      gender: person.gender,
                     });
-                    console.log('Image linked to person successfully:', personId, imageId);
+
+                    console.log('Person inserted with ID:', personId);
+                    if (personId) {
+                      await linkImageToPerson({
+                        imageId: imageId,
+                        personId: personId,
+                      });
+                      console.log('Image linked to person successfully:', personId, imageId);
+                    }
+                    // You can now use personId for further operations, e.g., tagging or linking the image
+                  } catch (error) {
+                    console.log('❌ Error inserting person:', error);
                   }
-                  // You can now use personId for further operations, e.g., tagging or linking the image
-                } catch (error) {
-                  console.log('❌ Error inserting person:', error);
                 }
+              } else {
+                console.log('🚫 No faces found in image.');
               }
-            } else {
-              console.log('🚫 No faces found in image.');
+
             }
           }
-
 
         });
 

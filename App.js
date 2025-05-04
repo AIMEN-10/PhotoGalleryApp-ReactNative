@@ -28,6 +28,7 @@ const Tab = createBottomTabNavigator();
 import { Provider as PaperProvider } from 'react-native-paper'; 
 import { enableScreens } from 'react-native-screens';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import MultipleEvents from './MultipleEvents';
 
 
 
@@ -88,6 +89,10 @@ const MainStack = () => (
     
     <Stack.Screen name="PersonInfo" 
     component={PersonInfo} 
+    options={{ headerShown: false }} 
+    />
+     <Stack.Screen name="MultipleEvents" 
+    component={MultipleEvents} 
     options={{ headerShown: false }} 
     />
      {/* <Stack.Screen 

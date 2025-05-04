@@ -90,6 +90,7 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
               i.is_sync,
               i.is_deleted,
               i.hash,
+              i.location_id,
     
               p.id AS person_id,
               p.name AS person_name,
@@ -113,7 +114,9 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
     
               for (let i = 0; i < rows.length; i++) {
                 const row = rows.item(i);
-    
+                console.log('Raw location_id:', row.location_id);
+                console.log('Type:', typeof row.location_id);
+                
                 if (!imageData) {
                   imageData = {
                     image_id: row.image_id,
@@ -124,6 +127,7 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
                     is_sync: row.is_sync,
                     is_deleted: row.is_deleted,
                     hash: row.hash,
+                    location_id: parseInt(row.location_id),
                     persons: [],
                   };
                 }
@@ -152,7 +156,162 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
         });
       });
     };
+    //edit data 
+    const editData = async (imageId, latestValue, selectedEvents, eventDate, location) => {
+      console.log('Selected events:', selectedEvents);
     
+      const database = await db;
+    
+      // 1. Update people
+      if (Array.isArray(latestValue)) {
+        for (const person of latestValue) {
+          const { name, gender, personPath } = person;
+          try {
+            await database.transaction(async (tx) => {
+              await tx.executeSql(
+                'UPDATE person SET name = ?, gender = ? WHERE path = ?',
+                [name, gender, personPath]
+              );
+            });
+            console.log(`✅ Updated person ${name}`);
+          } catch (error) {
+            console.error(`❌ Failed to update person ${name}:`, error.message);
+          }
+        }
+      }
+    
+      // 2. Delete & re-insert image events
+      if (selectedEvents && selectedEvents.length > 0) {
+        try {
+          await database.transaction(async (tx) => {
+            await tx.executeSql(
+              'DELETE FROM imageevent WHERE image_id = ?',
+              [imageId]
+            );
+            console.log('✅ Deleted existing events for image:', imageId);
+          });
+    
+          for (const eventId of selectedEvents) {
+            const intEventId = parseInt(eventId, 10);
+            try {
+              await insertImageEvent(imageId, intEventId);
+              console.log(`✅ Inserted event ${intEventId} for image ${imageId}`);
+            } catch (error) {
+              console.log(`❌ Failed to insert event ${intEventId}:`, error.message);
+            }
+          }
+        } catch (error) {
+          console.log('❌ Error handling image events:', error.message);
+        }
+      }
+    
+      // 3. Update event date or location
+      try {
+        if (eventDate) {
+          await database.transaction(async (tx) => {
+            await tx.executeSql(
+              'UPDATE image SET event_date = ? WHERE id = ?',
+              [eventDate, imageId]
+            );
+            console.log('✅ Event date updated');
+          });
+        }
+    
+        if (location) {
+          console.log('Location:', location);
+          await createLocationTable();
+          const loc_id = await insertLocation({ name: location });
+          await database.transaction(async (tx) => {
+            await tx.executeSql(
+              'UPDATE image SET location_id = ? WHERE id = ?',
+              [loc_id, imageId]
+            );
+            console.log('✅ Location updated');
+          });
+        }
+    
+        if (!eventDate && !location) {
+          console.log('No event date or location to update');
+        }
+      } catch (error) {
+        console.log('❌ Error updating image fields:', error.message);
+      }
+    };
+    
+    //get data or details screen 
+    const getImageData = async (imageId) => {
+      const database = await db;
+    
+      let result = {
+        image: null,
+        people: [],
+        events: [],
+        location: null
+      };
+    
+      try {
+        // 1. Get image data
+        await database.transaction(async (tx) => {
+          const imageRes = await tx.executeSql(
+            'SELECT * FROM image WHERE id = ?',
+            [imageId]
+          );
+          if (imageRes[0].rows.length > 0) {
+            result.image = imageRes[0].rows.item(0);
+          }
+        });
+    
+        // 2. Get people related to image (assuming path = image id or imagePath is stored)
+        await database.transaction(async (tx) => {
+          const peopleRes = await tx.executeSql(
+            'SELECT * FROM person WHERE path = ?',
+            [imageId] // adapt if path is something else
+          );
+          const people = [];
+          for (let i = 0; i < peopleRes[0].rows.length; i++) {
+            people.push(peopleRes[0].rows.item(i));
+          }
+          result.people = people;
+        });
+    
+        // 3. Get events linked via imageevent
+        await database.transaction(async (tx) => {
+          const eventRes = await tx.executeSql(
+            `SELECT e.* FROM event e
+             JOIN imageevent ie ON e.id = ie.event_id
+             WHERE ie.image_id = ?`,
+            [imageId]
+          );
+          const events = [];
+          for (let i = 0; i < eventRes[0].rows.length; i++) {
+            events.push(eventRes[0].rows.item(i));
+          }
+          result.events = events;
+        });
+    
+        // 4. Get location if exists
+        if (result.image && result.image.location_id) {
+          await database.transaction(async (tx) => {
+            const locRes = await tx.executeSql(
+              'SELECT * FROM location WHERE id = ?',
+              [result.image.location_id]
+            );
+            if (locRes[0].rows.length > 0) {
+              result.location = locRes[0].rows.item(0);
+            }
+          });
+        }
+    
+        console.log('✅ Full image data fetched:', result);
+        return result;
+    
+      } catch (error) {
+        console.error('❌ Failed to fetch image data:', error.message);
+        throw error;
+      }
+    };
+    
+
     
     
     
@@ -244,48 +403,31 @@ const insertPerson = async ({person}) => {
             )
         })
     }
-    const DeletetAllDataByid = () => {
-        
-        db.transaction(txn => {
-            txn.executeSql(
-                'Delete from person where id=?',
-                [ID],
-                (txn, res) => {
-                    // var tempAllPerson = []
-                    // for (i = 0; i < res.rows.length; i++) {
-                    //     var p = { ID: res.rows.item(i).ID, pName: res.rows.item(i).pName };
-                    //     tempAllPerson.push(p)
-                    //     console.log(tempAllPerson)
-                    // }
-                    
-                    // console.log(allPersons)
-                },
-                (error) => { }
-            )
-        })
-    }
+    const getLocationById = (id) => {
+      return new Promise((resolve, reject) => {
+          db.transaction(txn => {
+              txn.executeSql(
+                  'SELECT name FROM location WHERE id = ?',
+                  [id],
+                  (txn, res) => {
+                      // If the location exists, resolve with the location name
+                      if (res.rows.length > 0) {
+                          const locationName = res.rows.item(0).name;
+                          resolve(locationName); // Return the location name
+                      } else {
+                          reject('Location not found'); // Handle case if no location found
+                      }
+                  },
+                  (error) => {
+                      reject(`Error fetching location: ${error.message}`); // Handle SQL error
+                  }
+              );
+          });
+      });
+  };
+  
     
-    const UpdateDataByid = () => {
-        
-        db.transaction(txn => {
-            txn.executeSql(
-                'Update person set name=? where id=?',
-                [name,ID],
-                (txn, res) => {
-                    // var tempAllPerson = []
-                    // for (i = 0; i < res.rows.length; i++) {
-                    //     var p = { ID: res.rows.item(i).ID, pName: res.rows.item(i).pName };
-                    //     tempAllPerson.push(p)
-                    //     console.log(tempAllPerson)
-                    // }
-                    
-                    // console.log(allPersons)
-                },
-                (error) => { }
-            )
-        })
-    }
-
+    
     //Event
     const createEventTable = async () => {
         const database = await db;
@@ -373,6 +515,7 @@ const insertPerson = async ({person}) => {
       };
 
       const insertImageEvent = async (image_id, event_id) => {
+        createImageEventTable(); // Ensure the table exists
         const database = await db;
         await database.transaction(tx => {
           tx.executeSql(
@@ -536,13 +679,25 @@ const insertPerson = async ({person}) => {
         if (!name) throw new Error('Location name is required.');
       
         const database = await db;
-        await database.transaction(tx => {
-          tx.executeSql(
-            `INSERT INTO location (name, latitude, longitude) VALUES (?, ?, ?)`,
-            [name, latitude, longitude]
-          );
+      
+        return new Promise((resolve, reject) => {
+          database.transaction(tx => {
+            tx.executeSql(
+              `INSERT INTO location (name, latitude, longitude) VALUES (?, ?, ?)`,
+              [name, latitude, longitude],
+              (_, result) => {
+                console.log('✅ Location inserted with ID:', result.insertId);
+                resolve(result.insertId); // return the new location ID
+              },
+              (_, error) => {
+                console.error('❌ Failed to insert location:', error);
+                reject(error);
+              }
+            );
+          });
         });
       };
+      
 
       //group by people 
       const getPeopleWithImages = async () => {
@@ -579,12 +734,88 @@ GROUP BY p.id;
           });
         });
       };
-   
-
+      const checkIfHashExists = async (hash) => {
+        const database = await db;
+        return new Promise((resolve, reject) => {
+          database.transaction(tx => {
+            tx.executeSql(
+              'SELECT id FROM image WHERE hash = ?',
+              [hash],
+              (_, { rows }) => {
+                resolve(rows.length > 0); // true if exists
+              },
+              (_, error) => {
+                console.error('❌ Hash check failed:', error);
+                reject(error);
+              }
+            );
+          });
+        });
+      };
+      const getEventsByImageId = (imageId) => {
+        return new Promise((resolve, reject) => {
+            // Step 1: Fetch all event_id values related to the image from imageevent table
+            db.transaction(txn => {
+                txn.executeSql(
+                    'SELECT event_id FROM imageevent WHERE image_id = ?',
+                    [imageId],
+                    (txn, res) => {
+                        if (res.rows.length === 0) {
+                            resolve([]);  // No events found, resolve with empty array
+                            return;
+                        }
+    
+                        // Collect all event IDs
+                        const eventIds = [];
+                        for (let i = 0; i < res.rows.length; i++) {
+                            eventIds.push(res.rows.item(i).event_id);
+                        }
+    
+    
+                        // Step 2: Fetch event names based on the event_ids from events table
+                        if (eventIds.length > 0) {
+                            // Create placeholders for the event_ids
+                            const placeholders = eventIds.map(() => '?').join(',');
+                            const query = `SELECT name FROM event WHERE id IN (${placeholders})`;
+    
+    
+                            txn.executeSql(
+                                query,
+                                [...eventIds], // Spread the eventIds into individual parameters
+                                (txn, res) => {
+                                    const eventNames = [];
+                                    for (let i = 0; i < res.rows.length; i++) {
+                                        const event = res.rows.item(i);
+                                        eventNames.push(event.name);  // Only push the event name
+                                    }
+    
+                                    resolve(eventNames);  // Resolve with only event names
+                                },
+                                (txn, error) => {
+                                    console.log("Error fetching event names:", error);
+                                    reject(`Error fetching event names: ${error.message || error}`);  // Enhanced error message
+                                }
+                            );
+                        } else {
+                            resolve([]);  // No events found for this image
+                        }
+                    },
+                    (txn, error) => {
+                        console.log("Error fetching event_ids:", error);
+                        reject(`Error fetching event IDs: ${error.message || error}`);  // Enhanced error message
+                    }
+                );
+            });
+        });
+    };
+    
+    
+    
     
 
-
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
-  getImagesForPerson,insertEvent,getAllEvents,getImageDetails
+  getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editData,checkIfHashExists,getImageData,getLocationById,
+  getEventsByImageId
+
 };
 
