@@ -47,6 +47,7 @@ const Images = ({ route }) => {
   const handleImagePress = (item) => {
     navigation.navigate("ViewPhoto", { item: item, data: data });
   };
+//select multiple 
 
 
   return (

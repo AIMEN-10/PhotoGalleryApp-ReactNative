@@ -66,14 +66,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 25,
+         
     },
     grid: {
         paddingTop: 50,
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
-        width: "100%",
+        minWidth: '100%',  
         padding: 20,
+        
     },
     folderborder: {
         width: "48%",

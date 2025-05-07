@@ -6,6 +6,7 @@ import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { getAllEvents } from './Databasequeries';
 import MapView, { Marker, Polygon, Polyline } from "react-native-maps";
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import UUID from 'react-native-uuid';
@@ -13,14 +14,19 @@ import UUID from 'react-native-uuid';
 const Search = ({ route }) => {
   const { data } = route.params || {};
   const [name, setName] = useState('');
-  const [visible, setVisible] = useState(true);
-  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [visible, setVisible] = useState(false);
+  const [chips, setChips] = useState([]);
+  const [isMaleChecked, setIsMaleChecked] = useState(false);
+  const [isFemaleChecked, setIsFemaleChecked] = useState(false);
 
+  const [selectedLocation, setSelectedLocation] = useState(null);
+const [loc,setloc]=useState('');
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
+  const [eventDate, setEventDate] = useState('');
   const handleLocationSelect = (data, details) => {
     const { lat, lng } = details.geometry.location;
-    
+
     // Create a new marker with a unique ID
     const newMarker = {
       id: currentDateFormatted,  // Use UUID to generate a unique ID
@@ -36,6 +42,8 @@ const Search = ({ route }) => {
     const currentDate = selectedDate || date;
     setShow(Platform.OS === 'ios' ? true : false); // Hide the picker on Android after selection
     setDate(currentDate);
+    setEventDate(formatDate(currentDate)); // Format and set the selected date
+
   };
 
   const showDatepicker = () => {
@@ -62,6 +70,40 @@ const Search = ({ route }) => {
     // console.log(coordinate)
     // setMarker(coordinate);
   }
+
+  //events checkbox
+  const [eventData, setEventData] = useState([]);
+  const [selectedEvents, setSelectedEventsState] = useState({});
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const events = await getAllEvents(); // Fetch events from the database
+        const formattedData = events.map(event => ({
+          key: event.id,
+          value: event.name,
+        }));
+        setEventData(formattedData); // Store events
+      } catch (error) {
+        console.error('Failed to fetch events:', error);
+      }
+    };
+
+
+    fetchEvents(); // Fetch events when the modal is visible
+
+  }, []);
+
+  const toggleEvent = (eventId) => {
+    setSelectedEventsState((prev) => ({
+      ...prev,
+      [eventId]: !prev[eventId], // Toggle event selection,touching the checkbox
+    }));
+  };
+const SearchImages = () => {
+  console.log(chips, isMaleChecked, isFemaleChecked, eventDate, loc, selectedEvents);
+}
+
   return (
     <View>
 
@@ -80,26 +122,33 @@ const Search = ({ route }) => {
               placeholder="Enter name"
               placeholderTextColor={colors.grey}
             />
-            <Icon name="check-circle" size={30} color={colors.primary} />
+            <Icon name="check-circle" size={30} color={colors.primary} onPress={() => {
+              if (name.trim()) {
+
+                setChips([...chips, name.trim()]);
+                setName(''); // Clear the input
+              }
+            }} />
           </View>
           <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} // Hides scroll bar
             contentContainerStyle={{ flexDirection: 'row', gap: 10, paddingHorizontal: 10 }} // ✅ Proper row layout
           >
-            {visible && (
+            {chips.map((chipText, index) => (
               <Chip
-                onPress={() => console.log('Pressed')}
+                key={index}
                 onClose={() => {
-                  setVisible(false);
-                  console.log('Chip Closed');
+                  // Remove chip by index
+                  setChips(chips.filter((_, i) => i !== index));
                 }}
                 style={styles.chip}
-                textStyle={{ color: colors.secondary }}  // Text color
-                closeIconColor={colors.secondary || 'black'} // Custom color for close icon (Red)
+                textStyle={{ color: colors.secondary }}
+                closeIconColor={colors.secondary || 'black'}
               >
-                Aimen
+                {chipText}
               </Chip>
-            )}
-            <Chip onPress={() => console.log('Pressed')}
+            ))}
+
+            {/* <Chip onPress={() => console.log('Pressed')}
               onClose={() => console.log('Chip Closed')}
               style={styles.chip}
               textStyle={{ color: colors.secondary }}
@@ -117,60 +166,48 @@ const Search = ({ route }) => {
             <Chip onPress={() => console.log('Pressed')}
               onClose={() => console.log('Chip Closed')}
               style={styles.chip}
-            >Eman</Chip>
+            >Eman</Chip> */}
           </ScrollView>
           <View >
             <Text style={styles.text}>Gender</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-
               <Checkbox
-
+                status={isMaleChecked ? 'checked' : 'unchecked'}
+                onPress={() => setIsMaleChecked(!isMaleChecked)}
+                color={isMaleChecked  ? colors.primary : '#dcdcdc'}
               />
               <Text style={{ fontSize: 18, color: colors.dark }}>Male</Text>
 
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-
                 <Checkbox
-
+                  status={isFemaleChecked ? 'checked' : 'unchecked'}
+                  onPress={() => setIsFemaleChecked(!isFemaleChecked)}
+                  color={isFemaleChecked ? colors.primary : '#dcdcdc'}
                 />
                 <Text style={{ fontSize: 18, color: colors.dark }}>Female</Text>
               </View>
             </View>
+
+
           </View>
 
           <View >
 
             <Text style={styles.text}>Events</Text>
             <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Checkbox
 
-                />
-                <Text style={{ fontSize: 18, color: colors.dark }}>Birthday</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {eventData.map(event => (
+                <View key={event.key} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Checkbox
+                    status={selectedEvents[event.key] ? 'checked' : 'unchecked'}
+                    onPress={() => toggleEvent(event.key)} // Toggle event selection
+                    color={selectedEvents[event.key] ? colors.primary : '#dcdcdc'} // Set the color based on checked state
+                  />
+                  <Text style={{ fontSize: 18, color: colors.dark }}>{event.value}</Text>
+                </View>
+              ))}
 
-                <Checkbox
 
-                />
-                <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
-              </View>
-
-              {/* <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-
-              <Checkbox
-
-              />
-              <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-
-              <Checkbox
-
-              />
-              <Text style={{ fontSize: 18, color: colors.dark }}>Convocation</Text>
-            </View> */}
             </View>
           </View>
           <View>
@@ -179,7 +216,7 @@ const Search = ({ route }) => {
             <Text style={styles.text}>Capture Date</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
               <Text style={{ fontSize: 18, color: colors.dark }}>
-                {formatDate(date)}
+                {eventDate}
               </Text>
 
               <Icon
@@ -201,17 +238,17 @@ const Search = ({ route }) => {
               )}
             </View>
             <View>
-            <View style={styles.nameContainer}>
-              <Text style={styles.text}>Location</Text>
-              <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={(text) => setName(text)} // Update state on text change
-              placeholder="Enter location"
-              placeholderTextColor={colors.grey}
-            />
-            </View>
-            {/* for map  */}
+              <View style={styles.nameContainer}>
+                <Text style={styles.text}>Location</Text>
+                <TextInput
+                  style={styles.input}
+                  value={loc}
+                  onChangeText={(text)=>setloc(text)} // Update state on text change
+                  placeholder="Enter location"
+                  placeholderTextColor={colors.grey}
+                />
+              </View>
+              {/* for map  */}
               {/* <MapView
               style={{ width: '100%', height: 200, }}
               initialRegion={{
@@ -235,7 +272,7 @@ const Search = ({ route }) => {
               }
 
             </MapView> */}
-               {/* <GooglePlacesAutocomplete
+              {/* <GooglePlacesAutocomplete
             placeholder="Search for a location"
             onPress={handleLocationSelect}
             fetchDetails={true} // To get detailed information including lat/lng
@@ -277,7 +314,8 @@ const Search = ({ route }) => {
               <Button
                 mode='contained'
                 style={styles.button}
-                labelStyle={styles.buttonText}>
+                labelStyle={styles.buttonText}
+                onPress={SearchImages}>
                 Search
               </Button>
             </View>

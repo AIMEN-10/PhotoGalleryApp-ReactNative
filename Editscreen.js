@@ -181,9 +181,37 @@ const Editscreen = (props) => {
    
     console.log('Selected events:', selected);
   };
+  const recognizePerson = async (name, imagePath) => {
+    const url = `http://192.168.100.22:5000/recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(name)}`;
+  
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+      });
+  
+      const result = await response.json();
+      console.log('Recognition result:', result);
+    } catch (error) {
+      console.error('Error recognizing person:', error);
+    }
+  };
+  
+  
+  
   const handleSave = async () => {
     const latestValue = await getLatestSavedValue();
+    const persons = latestValue;          // Get the list of persons
 
+    if (Array.isArray(persons)) {
+      for (const person of persons) {
+        console.log(person.personPath);
+        const path = person.personPath.replace('face_images', './stored-faces');
+        console.log('Recognizing person:', person.name, 'at path:', path);
+        await recognizePerson(person.name, path);
+      }
+    } else {
+      console.warn('No valid persons array found in latestValue');
+    }
     console.log('✅ Saved :', {
       eventDate,
       imageId,
