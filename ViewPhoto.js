@@ -5,8 +5,8 @@ import Allcontrols from './Allcontrols';
 const { width, height } = Dimensions.get('window');
 const ViewPhoto = ({ route, navigation }) => {
    const { item,data } = route.params;
-
-  // Get the `path` from `item`
+   const parts = data.split(';');
+   // Get the `path` from `item`
   // const { path } = item;
  // console.log("View photo",item);
   // const imageUrl = baseUrl + item.path.replace('~', '');
@@ -18,7 +18,7 @@ const ViewPhoto = ({ route, navigation }) => {
 
       <View style={styles.allControlsContainer}>
 
-        <Allcontrols text=" " />
+        <Allcontrols text={parts[2] || 'Unknown'} />
       </View>
       <View style={styles.imageContainer}>
         {/* <Image source={{ uri: imageUrl }} style={styles.image} /> */}
