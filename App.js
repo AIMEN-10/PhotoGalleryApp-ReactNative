@@ -95,6 +95,32 @@ const MainStack = () => (
     component={MultipleEvents} 
     options={{ headerShown: false }} 
     />
+       <Stack.Screen
+        name="EditModal"
+        component={Editscreen}
+        options={{
+          presentation: 'transparentModal', // Forces overlay style
+          headerShown: false,
+          cardStyle: {
+            backgroundColor: 'transparent', // Important for transparent modal
+          },
+          cardStyleInterpolator: ({ current, layouts }) => {
+            return {
+              cardStyle: {
+                transform: [
+                  {
+                    translateY: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [layouts.screen.height, 0], // Slide from bottom
+                    }),
+                  },
+                ],
+                backgroundColor: 'transparent', // Ensure the background is transparent
+              },
+            };
+          },
+        }}
+      />
      {/* <Stack.Screen 
           name="Placeholder" 
           component={PlaceholderScreen} 

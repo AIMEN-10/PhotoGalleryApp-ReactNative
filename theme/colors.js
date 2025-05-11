@@ -7,6 +7,7 @@ export default {
 
     secondary: '#FFFFFF', // White
     dark: '#000000',      // Black
-    grey:'#A9A9A9'
+    grey:'#A9A9A9',
+    light_yellow:'rgba(248, 197, 12, 0.97)'
   };
   
