@@ -9,6 +9,8 @@ import { FlashList } from '@shopify/flash-list';
 import ImageData from './ViewModels/ImageData';
 import Filteredimages from './ViewModels/Filteredimages';
 import FastImage from 'react-native-fast-image';
+import ReactNativeModal from 'react-native-modal';  
+import Editscreen from './Editscreen';  
 
 const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) => {
   const isSelected = selectedItems.includes(item.id);
@@ -38,7 +40,6 @@ const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) =>
   );
 };
 
-
 const Images = ({ route }) => {
   const { data } = route.params || {};
   const parts = data.split(';');
@@ -49,6 +50,7 @@ const Images = ({ route }) => {
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);  // State for modal visibility
 
   const selectModeRef = useRef(selectMode);
   const selectedItemsRef = useRef(new Set());
@@ -97,6 +99,14 @@ const Images = ({ route }) => {
     [handleImagePress, toggleSelection]
   );
 
+  const openEditModal = () => {
+    setIsModalVisible(true);  // Open the modal
+  };
+
+  const closeModal = () => {
+    setIsModalVisible(false);  // Close the modal
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
       <View style={styles.container}>
@@ -105,41 +115,59 @@ const Images = ({ route }) => {
             text={parts[2] || 'Label'}
             selectMode={selectMode}
             selectedItems={selectedItems}
-            onBulkEdit={() => {
-              navigation.navigate('EditModal', { imageId: selectedItems });
-            }}
+            onBulkEdit={openEditModal}  // Open modal when bulk edit is clicked
           />
         </View>
 
         <View style={styles.gridContainer}>
           {photos.length > 0 ? (
-           <FlashList
-  data={photos}
-  extraData={{ selectMode, selectedItems }} // 🧠 KEY FIX
-  keyExtractor={(item) => item.id?.toString()}
-  numColumns={3}
-  estimatedItemSize={120}
-  renderItem={({ item }) => (
-    <ImageItem
-      item={item}
-      onPress={handleItemPress}
-      onLongPress={handleLongPress}
-      selectedItems={selectedItems}
-      selectMode={selectMode}
-    />
-  )}
-  columnWrapperStyle={{
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  }}
-  showsVerticalScrollIndicator={false}
-/>
-
+            <FlashList
+              data={photos}
+              extraData={{ selectMode, selectedItems }} 
+              keyExtractor={(item) => item.id?.toString()}
+              numColumns={3}
+              estimatedItemSize={120}
+              renderItem={({ item }) => (
+                <ImageItem
+                  item={item}
+                  onPress={handleItemPress}
+                  onLongPress={handleLongPress}
+                  selectedItems={selectedItems}
+                  selectMode={selectMode}
+                />
+              )}
+              columnWrapperStyle={{
+                justifyContent: 'space-between',
+                marginBottom: 15,
+              }}
+              showsVerticalScrollIndicator={false}
+            />
           ) : (
             <Text style={styles.noImagesText}>No images found</Text>
           )}
         </View>
       </View>
+
+      {/* Modal to show EditScreen */}
+      <ReactNativeModal
+        isVisible={isModalVisible}
+        onBackdropPress={closeModal}  // Close on backdrop click
+        backdropOpacity={0.5}  // Adjust backdrop opacity
+        style={styles.modal}
+      >
+        <View style={styles.modalContent}>
+          {/* Close the modal button */}
+          <Pressable style={styles.closeButton} onPress={closeModal}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </Pressable>
+
+          {/* EditScreen inside the modal */}
+          <Editscreen 
+            imageId={selectedItems} // Pass selectedItems to EditScreen
+            closeModal={closeModal}  // Optionally pass closeModal to EditScreen to close it from there
+          />
+        </View>
+      </ReactNativeModal>
     </SafeAreaView>
   );
 };
@@ -188,6 +216,25 @@ const styles = StyleSheet.create({
     marginTop: 100,
     fontSize: 18,
     color: colors.dark,
+  },
+  modal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  closeButton: {
+    padding: 10,
+    backgroundColor: '#FF0000',
+    borderRadius: 5,
+    alignSelf: 'flex-end',
+  },
+  closeButtonText: {
+    color: 'white',
   },
 });
 

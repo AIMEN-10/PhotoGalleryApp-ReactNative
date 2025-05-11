@@ -156,10 +156,27 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
         });
       });
     };
-    //edit data 
+    //edit data method 
+
+
+const editDataForMultipleIds = async (imageIds, latestValue, selectedEvents, eventDate, location) => {
+  // Check if imageIds is an array or a single value
+  if (Array.isArray(imageIds)) {
+    // Case 1: When imageIds is a list, iterate over each ID
+    for (const imageId of imageIds) {
+      await editData(imageId, latestValue, selectedEvents, eventDate, location);
+    }
+  } else {
+    // Case 2: When imageIds is a single value, treat it as a single ID
+    await editData(imageIds, latestValue, selectedEvents, eventDate, location);
+  }
+};
+
+
+//calling this for edit 
     const editData = async (imageId, latestValue, selectedEvents, eventDate, location) => {
       console.log('Selected events:', selectedEvents);
-    
+    console.log('database image idz',imageId)
       const database = await db;
     
       // 1. Update people
@@ -1060,7 +1077,7 @@ GROUP BY p.id;
     
     
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
-  getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editData,checkIfHashExists,getImageData,getLocationById,
+  getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editDataForMultipleIds,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
   getImagesByEventId,markImageAsDeleted
 

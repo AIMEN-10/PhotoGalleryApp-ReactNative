@@ -8,7 +8,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AddEventPopup from './AddEventPopup';
 import Location from './Location';
-import { getAllEvents, getImageDetails, editData } from './Databasequeries';
+import { getAllEvents, getImageDetails, editDataForMultipleIds } from './Databasequeries';
 import { useFocusEffect } from '@react-navigation/native';
 import MultipleEvents from './MultipleEvents';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -141,6 +141,10 @@ const Editscreen = (props) => {
 
       try {
         if (imageId) {
+            if (Array.isArray(imageId)) {
+              console.log(imageId)
+            }
+            else{
           const imageDet = await getImageDetails(imageId);
           setImageDetails(imageDet.persons);
           console.log("Fetched image details:", imageDet.persons);
@@ -155,6 +159,7 @@ const Editscreen = (props) => {
             console.log('No image details found for this ID!');
           }
         }
+      }
       }
       catch (error) {
         console.error('Error fetching image details:', error);
@@ -210,7 +215,7 @@ const Editscreen = (props) => {
         await recognizePerson(person.name, path);
       }
     } else {
-      console.warn('No valid persons array found in latestValue');
+      //console.warn('No valid persons array found in latestValue');
     }
     console.log('✅ Saved :', {
       eventDate,
@@ -219,7 +224,7 @@ const Editscreen = (props) => {
       selectedEvents,
       latestValue,
     });
-    var result = editData(imageId, latestValue, selectedEvents, eventDate, location);
+    var result = editDataForMultipleIds(imageId, latestValue, selectedEvents, eventDate, location);
     clearAllAsyncStorage()
 
   };
