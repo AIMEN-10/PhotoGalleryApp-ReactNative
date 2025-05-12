@@ -20,7 +20,7 @@ import { markImageAsDeleted } from './Databasequeries';
 const Tab = createBottomTabNavigator();
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-const Editnavbar = ({ imageId }) => {
+const Editnavbar = ({ imageId , onModalToggle }) => {
   const StaticScreen = () => (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <Text style={{ fontSize: 20 }}>Same View Remains</Text>
@@ -68,12 +68,14 @@ const deleteImage=async () => {
   const [activeTab, setActiveTab] = useState(null);
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
-  const openModal = () => {
+   const openModal = () => {
     Animated.timing(translateY, {
       toValue: 0,
       duration: 300,
       useNativeDriver: true,
-    }).start();
+    }).start(() => {
+      onModalToggle?.(true);  // Notify parent
+    });
   };
 
   const closeModal = () => {
@@ -81,8 +83,13 @@ const deleteImage=async () => {
       toValue: SCREEN_HEIGHT,
       duration: 300,
       useNativeDriver: true,
-    }).start(() => setModalData(null));
+    }).start(() => {
+      setModalData(null);
+      onModalToggle?.(false);  // Notify parent
+    });
   };
+
+
 
   useEffect(() => {
     if (!modalData) return;
@@ -248,3 +255,4 @@ const deleteImage=async () => {
 };
 
 export default Editnavbar;
+
