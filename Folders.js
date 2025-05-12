@@ -3,7 +3,7 @@ import { View, ScrollView, Image, Text, StyleSheet, TouchableOpacity } from 'rea
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
 import FoldersData from './ViewModels/FoldersData';
-
+// import {getAllLocations} from './Databasequeries';
 const Folders = ({ route }) => {
     const { data } = route.params || {};
     //console.log('Data received in Folders:', data); // Log the received data
@@ -18,7 +18,18 @@ const Folders = ({ route }) => {
     useEffect(() => {
         loadData();
     }, []);
+// useEffect(() => {
+//     const fetchLocations = async () => {
+//       try {
+//         const data = await getAllLocations();
+//         console.log(data);
+//       } catch (error) {
+//         console.error('Failed to load locations:', error);
+//       }
+//     };
 
+//     fetchLocations();
+//   }, []); 
 
 console.log('Result here:', result); 
     const handleNavigation = (id,name) => {

@@ -710,29 +710,73 @@ const getDataByDate = (date) => {
         });
       };
 
+
+
+
+      const getAllLocations = async () => {
+  const database = await db;
+  return new Promise((resolve, reject) => {
+    database.transaction(tx => {
+      tx.executeSql(
+        'SELECT * FROM location;',
+        [],
+        (_, results) => {
+          const locations = [];
+          for (let i = 0; i < results.rows.length; i++) {
+            locations.push(results.rows.item(i));
+          }
+          resolve(locations);
+        },
+        (_, error) => {
+          reject(error);
+        }
+      );
+    });
+  });
+};
+
       const insertLocation = async ({ name, latitude = null, longitude = null }) => {
-        if (!name) throw new Error('Location name is required.');
-      
-        const database = await db;
-      
-        return new Promise((resolve, reject) => {
-          database.transaction(tx => {
+  if (!name) throw new Error('Location name is required.');
+
+  const database = await db;
+
+  return new Promise((resolve, reject) => {
+    database.transaction(tx => {
+      // Step 1: Check if the location already exists
+      tx.executeSql(
+        `SELECT id FROM location WHERE name = ? LIMIT 1`,
+        [name],
+        (_, selectResult) => {
+          if (selectResult.rows.length > 0) {
+            // Location already exists
+            const existingId = selectResult.rows.item(0).id;
+            console.log('✅ Location already exists with ID:', existingId);
+            resolve(existingId);
+          } else {
+            // Step 2: Insert new location
             tx.executeSql(
               `INSERT INTO location (name, latitude, longitude) VALUES (?, ?, ?)`,
               [name, latitude, longitude],
-              (_, result) => {
-                console.log('✅ Location inserted with ID:', result.insertId);
-                resolve(result.insertId); // return the new location ID
+              (_, insertResult) => {
+                console.log('✅ Location inserted with ID:', insertResult.insertId);
+                resolve(insertResult.insertId);
               },
-              (_, error) => {
-                console.error('❌ Failed to insert location:', error);
-                reject(error);
+              (_, insertError) => {
+                console.error('❌ Failed to insert location:', insertError);
+                reject(insertError);
               }
             );
-          });
-        });
-      };
-      
+          }
+        },
+        (_, selectError) => {
+          console.error('❌ Failed to check for existing location:', selectError);
+          reject(selectError);
+        }
+      );
+    });
+  });
+};
+
 
       //group by people 
       const getPeopleWithImages = async () => {
@@ -912,6 +956,7 @@ GROUP BY p.id;
                     imagePath: row.path, // only one image
                   });
                   addedLocations.add(row.location_id);
+                  
                 }
               }
     
@@ -1079,7 +1124,7 @@ GROUP BY p.id;
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editDataForMultipleIds,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
-  getImagesByEventId,markImageAsDeleted
+  getImagesByEventId,markImageAsDeleted,getAllLocations
 
 };
 
