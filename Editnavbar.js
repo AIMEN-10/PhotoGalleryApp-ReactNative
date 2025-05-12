@@ -74,7 +74,7 @@ const deleteImage=async () => {
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      onModalToggle?.(true);  // Notify parent
+      onModalToggle?.(true);  
     });
   };
 
@@ -85,7 +85,7 @@ const deleteImage=async () => {
       useNativeDriver: true,
     }).start(() => {
       setModalData(null);
-      onModalToggle?.(false);  // Notify parent
+      onModalToggle?.(false);  
     });
   };
 
@@ -118,12 +118,13 @@ const deleteImage=async () => {
           >
             <Animated.View
               style={{
+                
                 transform: [{ translateY }],
                 backgroundColor: colors.secondary,
                 maxHeight: SCREEN_HEIGHT * 0.7,
                 borderTopLeftRadius: 20,
                 borderTopRightRadius: 20,
-                paddingBottom: 20,
+                // paddingBottom: 20,
               }}
             >
               <View style={{ padding: 16, alignItems: 'flex-end' }}>
