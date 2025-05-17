@@ -102,7 +102,6 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
 
 const Folders = ({ route }) => {
   const { data } = route.params || {};
-  // console.log("dat", data)
   const [result, setResult] = useState([]);
   const [layouts, setLayouts] = useState({}); // store layout info
   const navigation = useNavigation();

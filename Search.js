@@ -70,25 +70,26 @@ const navigation = useNavigation();
   };
 
   const SearchImages = async() => {
-    console.log('Names:', chips);
-    console.log('Genders:', isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : '');
-    console.log('Locations:', locations);
-    console.log('Capture Dates:', dates);
-    console.log('Selected Events:', selectedEvents);
+    // console.log('Names:', chips);
+    // console.log('Genders:', isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : '');
+    // console.log('Locations:', locations);
+    // console.log('Capture Dates:', dates);
+    // console.log('Selected Events:', selectedEvents);
 
     const filters = {
   Names: chips,
   Genders: [isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : ''],
   Locations: locations,
   CaptureDates: dates,
-  SelectedEvents: selectedEvents
+  SelectedEvents: selectedEvents,
 };
+       navigation.navigate('Images', { data: filters });
 
-searchImages(filters, images => {
-  console.log('RESULT IMAGES:', images);
-      navigation.navigate('Images', { data: data + ';' + images.id + ';' + images.path });
+// searchImages(filters, images => {
+//   console.log('RESULT IMAGES:', images);
+//       navigation.navigate('Images', { data: data + ';' +filters + ';' + images.path });
 
-});
+// });
 
 
 

@@ -42,7 +42,11 @@ const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) =>
 
 const Images = ({ route }) => {
   const { data } = route.params || {};
-  const parts = data.split(';');
+  let parts = [];
+  if (typeof data === 'string' && data.includes(';')) {
+   parts = data.split(';');
+
+} 
   const navigation = useNavigation();
 
   const [photos, setPhotos] = useState([]);
@@ -67,6 +71,7 @@ const Images = ({ route }) => {
     const loadData = async () => {
       if (!data) return;
       const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
+      // console.log("here:",result);
       setPhotos(result);
     };
     loadData();

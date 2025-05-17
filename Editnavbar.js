@@ -86,6 +86,7 @@ const deleteImage=async () => {
     }).start(() => {
       setModalData(null);
       onModalToggle?.(false);  
+       setActiveTab(null);
     });
   };
 

@@ -1198,100 +1198,95 @@ const insertPersonLinkIfNotExists = (person1_id, person2_id) => {
 };
 
 //search 
-const searchImages = (filters, callback) => {
-  const {
-    Names = [],
-    Genders = '',
-    Locations = [],
-    CaptureDates = [],
-    SelectedEvents = {},
-  } = filters;
+const searchImages = (filters) => {
+  return new Promise((resolve, reject) => {
+    const {
+      Names = [],
+      Genders = [],
+      Locations = [],
+      CaptureDates = [],
+      SelectedEvents = {},
+    } = filters;
 
-  console.log('Names:', Names);
-  console.log('Genders:', Genders);
-  console.log('Locations:', Locations);
-  console.log('Capture Dates:', CaptureDates);
-  console.log('Selected Events:', SelectedEvents);
+    // Clean arrays (remove empty strings)
+    const clean = (arr) => arr.filter(val => val && val.trim() !== '');
+    const wrapValues = (arr) => clean(arr).map(v => `'${v.replace(/'/g, "''")}'`).join(',');
 
-  const eventIds = Object.keys(SelectedEvents).filter(k => SelectedEvents[k]);
+    const nameStr = wrapValues(Names);
+    const genderStr = wrapValues(Genders);
+    const locationStr = wrapValues(Locations);
+    const dateStr = wrapValues(CaptureDates);
 
-  // Helper to wrap values in quotes
-  const wrapValues = (arr) => arr.map(v => `'${v.replace(/'/g, "''")}'`).join(',');
+    const eventIds = Object.keys(SelectedEvents).filter(id => SelectedEvents[id]);
+    const eventStr = wrapValues(eventIds);
 
-  const nameStr = Names.length ? wrapValues(Names) : null;
-  const genderList = Array.isArray(Genders) ? Genders : Genders.split ? Genders.split(' ') : [];
-  const genderStr = genderList.length ? wrapValues(genderList) : null;
-  const locationStr = Locations.length ? wrapValues(Locations) : null;
-  const dateStr = CaptureDates.length ? wrapValues(CaptureDates) : null;
-  const eventStr = eventIds.length ? wrapValues(eventIds) : null;
+    let query = `
+      SELECT DISTINCT i.*
+      FROM Image i
+      JOIN imagePerson ip ON ip.image_id = i.id
+      JOIN person p ON p.id = ip.person_id
+      LEFT JOIN Location l ON l.id = i.location_id
+      LEFT JOIN imageEvent ie ON ie.image_id = i.id
+      LEFT JOIN Event e ON e.id = ie.event_id
+      WHERE i.is_deleted = 0
+    `;
 
-  let query = `
-    SELECT DISTINCT i.*
-    FROM Image i
-    JOIN imagePerson ip ON ip.image_id = i.id
-    JOIN person p ON p.id = ip.person_id
-    LEFT JOIN Location l ON l.id = i.location_id
-    LEFT JOIN imageEvent ie ON ie.image_id = i.id
-    LEFT JOIN Event e ON e.id = ie.event_id
-    WHERE i.is_deleted = 0
-  `;
-
-  // Add name & gender filters (including links)
-  if (nameStr && genderStr) {
-    query += ` AND (
-      (p.name IN (${nameStr}) AND p.gender IN (${genderStr}))
-      OR p.id IN (
-        SELECT person2_id FROM person_links WHERE person1_id IN (
-          SELECT id FROM person WHERE name IN (${nameStr}) AND gender IN (${genderStr})
+    // Add filters dynamically
+    if (nameStr && genderStr) {
+      query += ` AND (
+        (p.name IN (${nameStr}) AND p.gender IN (${genderStr}))
+        OR p.id IN (
+          SELECT person2_id FROM person_links WHERE person1_id IN (
+            SELECT id FROM person WHERE name IN (${nameStr}) AND gender IN (${genderStr})
+          )
+          UNION
+          SELECT person1_id FROM person_links WHERE person2_id IN (
+            SELECT id FROM person WHERE name IN (${nameStr}) AND gender IN (${genderStr})
+          )
         )
-        UNION
-        SELECT person1_id FROM person_links WHERE person2_id IN (
-          SELECT id FROM person WHERE name IN (${nameStr}) AND gender IN (${genderStr})
-        )
-      )
-    )`;
-  } else if (nameStr) {
-    query += ` AND p.name IN (${nameStr})`;
-  }
+      )`;
+    } else if (nameStr) {
+      query += ` AND p.name IN (${nameStr})`;
+    } else if (genderStr) {
+      query += ` AND p.gender IN (${genderStr})`;
+    }
 
-  // Add location filter
-  if (locationStr) {
-    query += ` AND l.name IN (${locationStr})`;
-  }
+    if (locationStr) {
+      query += ` AND l.name IN (${locationStr})`;
+    }
 
-  // Add capture date filter
-  if (dateStr) {
-    query += ` AND i.capture_date IN (${dateStr})`;
-  }
+    if (dateStr) {
+      query += ` AND i.capture_date IN (${dateStr})`;
+    }
 
-  // Add event filter
-  if (eventStr) {
-    query += ` AND e.id IN (${eventStr})`;
-  }
+    if (eventStr) {
+      query += ` AND e.id IN (${eventStr})`;
+    }
 
-  // Order by newest first
-  query += ` ORDER BY i.capture_date DESC;`;
+    query += ` ORDER BY i.capture_date DESC;`;
 
-  // console.log('📦 Running Query:\n', query);
 
-  db.transaction(tx => {
-    tx.executeSql(
-      query,
-      [],
-      (_, { rows }) => {
-        const images = [];
-        for (let i = 0; i < rows.length; i++) {
-          images.push(rows.item(i));
+    db.transaction(tx => {
+      tx.executeSql(
+        query,
+        [],
+        (_, { rows }) => {
+          const images = [];
+          for (let i = 0; i < rows.length; i++) {
+            images.push({
+              id: rows.item(i).id,
+              path: rows.item(i).path,
+            });
+          }
+          resolve(images);
+        },
+        (_, error) => {
+          console.error('❌ SQLite query error:', error);
+          reject(error);
+          return false;
         }
-        console.log('✅ RESULT IMAGES:', images);
-        callback(images);
-      },
-      (_, error) => {
-        console.error('❌ SQLite query error:', error);
-        callback([]);
-        return false;
-      }
-    );
+      );
+    });
   });
 };
 
