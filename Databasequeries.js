@@ -1119,12 +1119,188 @@ GROUP BY p.id;
       });
     };
     
-    
-    
+    //link
+    const createPersonLinksTable = async () => {
+  db.transaction((txn) => {
+    txn.executeSql(
+      `CREATE TABLE IF NOT EXISTS person_links (
+        person1_id INTEGER NOT NULL,
+        person2_id INTEGER NOT NULL,
+        PRIMARY KEY (person1_id, person2_id),
+        FOREIGN KEY (person1_id) REFERENCES person(id),
+        FOREIGN KEY (person2_id) REFERENCES person(id)
+      )`,
+      [],
+      (sqlTxn, res) => {
+        console.log('Person links table created successfully');
+      },
+      (sqlTxn, error) => {
+        console.log('Error creating person links table: ' + error.message);
+      }
+    );
+  });
+};
+
+const getAllPersonLinks = () => {
+  db.transaction((txn) => {
+    txn.executeSql(
+      `SELECT * FROM person_links`,
+      [],
+      (sqlTxn, res) => {
+        const rows = res.rows;
+        let links = [];
+
+        for (let i = 0; i < rows.length; i++) {
+          links.push(rows.item(i));
+        }
+
+        console.log('Person Links:', links);
+      },
+      (sqlTxn, error) => {
+        console.log('Error fetching person_links:', error.message);
+      }
+    );
+  });
+};
+
+
+const insertPersonLinkIfNotExists = (person1_id, person2_id) => {
+  createPersonLinksTable();
+  db.transaction((txn) => {
+    // Step 1: Check if the link already exists (in either direction)
+    txn.executeSql(
+      `SELECT * FROM person_links 
+       WHERE (person1_id = ? AND person2_id = ?) 
+          OR (person1_id = ? AND person2_id = ?)`,
+      [person1_id, person2_id, person2_id, person1_id],
+      (sqlTxn, res) => {
+        if (res.rows.length > 0) {
+          console.log('Link already exists between', person1_id, 'and', person2_id);
+        } else {
+          // Step 2: Insert new link
+          txn.executeSql(
+            `INSERT INTO person_links (person1_id, person2_id) VALUES (?, ?)`,
+            [person1_id, person2_id],
+            (insertTxn, insertRes) => {
+              console.log('Link inserted successfully:', person1_id, person2_id);
+            },
+            (insertTxn, error) => {
+              console.log('Error inserting link:', error.message);
+            }
+          );
+        }
+      },
+      (sqlTxn, error) => {
+        console.log('Error checking for existing link:', error.message);
+      }
+    );
+  });
+};
+
+//search 
+const searchImages = (filters, callback) => {
+  const {
+    Names = [],
+    Genders = '',
+    Locations = [],
+    CaptureDates = [],
+    SelectedEvents = {},
+  } = filters;
+
+  console.log('Names:', Names);
+  console.log('Genders:', Genders);
+  console.log('Locations:', Locations);
+  console.log('Capture Dates:', CaptureDates);
+  console.log('Selected Events:', SelectedEvents);
+
+  const eventIds = Object.keys(SelectedEvents).filter(k => SelectedEvents[k]);
+
+  // Helper to wrap values in quotes
+  const wrapValues = (arr) => arr.map(v => `'${v.replace(/'/g, "''")}'`).join(',');
+
+  const nameStr = Names.length ? wrapValues(Names) : null;
+  const genderList = Array.isArray(Genders) ? Genders : Genders.split ? Genders.split(' ') : [];
+  const genderStr = genderList.length ? wrapValues(genderList) : null;
+  const locationStr = Locations.length ? wrapValues(Locations) : null;
+  const dateStr = CaptureDates.length ? wrapValues(CaptureDates) : null;
+  const eventStr = eventIds.length ? wrapValues(eventIds) : null;
+
+  let query = `
+    SELECT DISTINCT i.*
+    FROM Image i
+    JOIN imagePerson ip ON ip.image_id = i.id
+    JOIN person p ON p.id = ip.person_id
+    LEFT JOIN Location l ON l.id = i.location_id
+    LEFT JOIN imageEvent ie ON ie.image_id = i.id
+    LEFT JOIN Event e ON e.id = ie.event_id
+    WHERE i.is_deleted = 0
+  `;
+
+  // Add name & gender filters (including links)
+  if (nameStr && genderStr) {
+    query += ` AND (
+      (p.name IN (${nameStr}) AND p.gender IN (${genderStr}))
+      OR p.id IN (
+        SELECT person2_id FROM person_links WHERE person1_id IN (
+          SELECT id FROM person WHERE name IN (${nameStr}) AND gender IN (${genderStr})
+        )
+        UNION
+        SELECT person1_id FROM person_links WHERE person2_id IN (
+          SELECT id FROM person WHERE name IN (${nameStr}) AND gender IN (${genderStr})
+        )
+      )
+    )`;
+  } else if (nameStr) {
+    query += ` AND p.name IN (${nameStr})`;
+  }
+
+  // Add location filter
+  if (locationStr) {
+    query += ` AND l.name IN (${locationStr})`;
+  }
+
+  // Add capture date filter
+  if (dateStr) {
+    query += ` AND i.capture_date IN (${dateStr})`;
+  }
+
+  // Add event filter
+  if (eventStr) {
+    query += ` AND e.id IN (${eventStr})`;
+  }
+
+  // Order by newest first
+  query += ` ORDER BY i.capture_date DESC;`;
+
+  // console.log('📦 Running Query:\n', query);
+
+  db.transaction(tx => {
+    tx.executeSql(
+      query,
+      [],
+      (_, { rows }) => {
+        const images = [];
+        for (let i = 0; i < rows.length; i++) {
+          images.push(rows.item(i));
+        }
+        console.log('✅ RESULT IMAGES:', images);
+        callback(images);
+      },
+      (_, error) => {
+        console.error('❌ SQLite query error:', error);
+        callback([]);
+        return false;
+      }
+    );
+  });
+};
+
+
+
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editDataForMultipleIds,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
-  getImagesByEventId,markImageAsDeleted,getAllLocations
+  getImagesByEventId,markImageAsDeleted,getAllLocations,getAllPersonLinks,insertPersonLinkIfNotExists,searchImages
 
 };
 

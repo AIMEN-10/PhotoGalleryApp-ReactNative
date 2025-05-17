@@ -30,14 +30,13 @@ import { enableScreens } from 'react-native-screens';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MultipleEvents from './MultipleEvents';
 
-
+import Drag from './Drag';
 
 
 
 const MainStack = () => (
 <PaperProvider>
   <Stack.Navigator>
-    
      <Stack.Screen 
       name="navbar" 
       component={Bottomnavigation} 
@@ -192,7 +191,7 @@ const App = () => {
  
   
   return (
-    <GestureHandlerRootView>
+    <GestureHandlerRootView  style={{ flex: 1 }}>
     <NavigationContainer >
   <MainStack />
   

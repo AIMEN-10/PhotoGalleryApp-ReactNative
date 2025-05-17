@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Image, StyleSheet, SafeAreaView, Text, Dimensions, TouchableWithoutFeedback } from 'react-native';
+import React, { useState ,useEffect} from 'react';
+import { View, Image, StyleSheet, SafeAreaView, Text, Dimensions, TouchableWithoutFeedback, BackHandler } from 'react-native';
 import Editnavbar from './Editnavbar';
 import colors from './theme/colors';
 
@@ -15,6 +15,21 @@ const ViewPhoto = ({ route }) => {
       setIsModalOpen(false); // close modal and expand image
     }
   };
+
+
+ useEffect(() => {
+    const backAction = () => {
+      if (isModalOpen) {
+        setIsModalOpen(false);
+        return true; // Prevent default back behavior
+      }
+      return false; // Allow default back behavior
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    return () => backHandler.remove(); // Cleanup on unmount
+  }, [isModalOpen]);
 
   return (
     <SafeAreaView style={styles.container}>

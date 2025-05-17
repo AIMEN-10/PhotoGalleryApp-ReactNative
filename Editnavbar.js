@@ -91,13 +91,13 @@ const deleteImage=async () => {
 
 
 
-  useEffect(() => {
-    if (!modalData) return;
-    const task = InteractionManager.runAfterInteractions(() => {
-      openModal();
-    });
-    return () => task.cancel();
-  }, [modalData]);
+  // useEffect(() => {
+  //   if (!modalData) return;
+  //   const task = InteractionManager.runAfterInteractions(() => {
+  //     openModal();
+  //   });
+  //   return () => task.cancel();
+  // }, [modalData]);
 
   return (
     <>
@@ -216,9 +216,12 @@ const deleteImage=async () => {
                     } else if (name === 'Info') {
                       setModalData({ type: 'info', content: 'Info-related content here.' });
                     } else if (name === 'Edit') {
-                      setModalData({ type: 'edit', content: Editscreen, props: { imageId: imageId } });
+setModalData({ type: 'edit', content: Editscreen, props: { imageId: imageId } });
+setTimeout(() => openModal(), 0);  // Ensure animation runs after state is set
                     } else if (name === 'Details') {
-                      setModalData({ type: 'details', content: Detailsscreen, props: { imageId: imageId }});
+                      setModalData({ type: 'details', content: Detailsscreen, props: { imageId: imageId } });
+setTimeout(() => openModal(), 0); 
+                      // setModalData({ type: 'details', content: Detailsscreen, props: { imageId: imageId }});
                     } else {
                       onPress?.();
                     }

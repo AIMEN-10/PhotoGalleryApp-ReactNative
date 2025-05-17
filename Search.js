@@ -6,7 +6,7 @@ import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { getAllEvents } from './Databasequeries';
+import { getAllEvents,searchImages } from './Databasequeries';
 
 const Search = ({ route }) => {
   const { data } = route.params || {};
@@ -24,7 +24,7 @@ const Search = ({ route }) => {
 
   const [eventData, setEventData] = useState([]);
   const [selectedEvents, setSelectedEventsState] = useState({});
-
+const navigation = useNavigation();
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -69,12 +69,29 @@ const Search = ({ route }) => {
     setShow(true);
   };
 
-  const SearchImages = () => {
+  const SearchImages = async() => {
     console.log('Names:', chips);
     console.log('Genders:', isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : '');
     console.log('Locations:', locations);
     console.log('Capture Dates:', dates);
     console.log('Selected Events:', selectedEvents);
+
+    const filters = {
+  Names: chips,
+  Genders: [isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : ''],
+  Locations: locations,
+  CaptureDates: dates,
+  SelectedEvents: selectedEvents
+};
+
+searchImages(filters, images => {
+  console.log('RESULT IMAGES:', images);
+      navigation.navigate('Images', { data: data + ';' + images.id + ';' + images.path });
+
+});
+
+
+
   };
 
   return (
