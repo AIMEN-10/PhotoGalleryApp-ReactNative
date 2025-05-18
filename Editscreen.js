@@ -187,7 +187,9 @@ const Editscreen = (props) => {
     console.log('Selected events:', selected);
   };
   const recognizePerson = async (name, imagePath) => {
-    const url = `http://192.168.100.22:5000/recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(name)}`;
+        // const url = `http://192.168.100.22:5000/recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(name)}`;
+
+    const url = `${baseUrl}recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(name)}`;
   
     try {
       const response = await fetch(url, {

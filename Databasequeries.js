@@ -55,6 +55,27 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
     
     
 
+//     const getAllImageData = () => {
+//   return new Promise((resolve, reject) => {
+//     const imageData = [];
+//     db.transaction((txn) => {
+//       txn.executeSql(
+//         'SELECT * FROM Image',
+//         [],
+//         (t, res) => {
+//           for (let i = 0; i < res.rows.length; i++) {
+//             imageData.push(res.rows.item(i));
+//           }
+//           resolve(imageData);
+//         },
+//         (error) => {
+//           console.log('Error fetching data: ', error.message);
+//           reject(error);
+//         }
+//       );
+//     });
+//   });
+// };
     const getAllImageData = (callback) => {
       const imageData = [];
       
@@ -74,6 +95,7 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
         );
       });
     };
+
 
     const getImageDetails = async (imageId) => {
       console.log("Fetching image details for ID:", imageId);
@@ -1142,26 +1164,27 @@ GROUP BY p.id;
 };
 
 const getAllPersonLinks = () => {
-  db.transaction((txn) => {
-    txn.executeSql(
-      `SELECT * FROM person_links`,
-      [],
-      (sqlTxn, res) => {
-        const rows = res.rows;
-        let links = [];
-
-        for (let i = 0; i < rows.length; i++) {
-          links.push(rows.item(i));
+  return new Promise((resolve, reject) => {
+    db.transaction((txn) => {
+      txn.executeSql(
+        `SELECT * FROM person_links`,
+        [],
+        (sqlTxn, res) => {
+          const links = [];
+          for (let i = 0; i < res.rows.length; i++) {
+            links.push(res.rows.item(i));
+          }
+          resolve(links);
+        },
+        (sqlTxn, error) => {
+          console.log('Error fetching person_links:', error.message);
+          reject(error);
         }
-
-        console.log('Person Links:', links);
-      },
-      (sqlTxn, error) => {
-        console.log('Error fetching person_links:', error.message);
-      }
-    );
+      );
+    });
   });
 };
+
 
 
 const insertPersonLinkIfNotExists = (person1_id, person2_id) => {
@@ -1290,12 +1313,55 @@ const searchImages = (filters) => {
   });
 };
 
+//FOR GROUPING OF PERSON 
+const getAllPersons = () => {
+  return new Promise((resolve, reject) => {
+    db.transaction((txn) => {
+      txn.executeSql(
+        `SELECT * FROM person`,
+        [],
+        (sqlTxn, res) => {
+          let persons = [];
+          for (let i = 0; i < res.rows.length; i++) {
+            persons.push(res.rows.item(i));
+          }
+          resolve(persons);
+        },
+        (sqlTxn, error) => reject(error.message)
+      );
+    });
+  });
+};
+
+
+
+const getImagePersonMap = () => {
+  return new Promise((resolve, reject) => {
+    db.transaction((txn) => {
+      txn.executeSql(
+        `SELECT * FROM imagePerson`,
+        [],
+        (sqlTxn, res) => {
+          let map = [];
+          for (let i = 0; i < res.rows.length; i++) {
+            map.push(res.rows.item(i));
+          }
+          resolve(map);
+        },
+        (sqlTxn, error) => reject(error.message)
+      );
+    });
+  });
+};
+
+
 
 
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editDataForMultipleIds,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
-  getImagesByEventId,markImageAsDeleted,getAllLocations,getAllPersonLinks,insertPersonLinkIfNotExists,searchImages
+  getImagesByEventId,markImageAsDeleted,getAllLocations,getAllPersonLinks,insertPersonLinkIfNotExists,searchImages,
+  getAllPersons,getImagePersonMap
 
 };
 
