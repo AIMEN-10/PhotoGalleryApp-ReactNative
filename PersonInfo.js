@@ -18,45 +18,45 @@ const PersonInfo = ({ route }) => {
 
 
   useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
-        if (!hasSentData.current) {
-          hasSentData.current = true;
-         
-          const imageId = imageDetails?.[0]?.person_id;
-          if (screen !== 'Details') {
-        const personData = [
-          {
-            name: name || 'Unknown',   // If `name` is null or empty, use 'Unknown'
-            gender: gender || 'U',
-            personPath: imageDetails?.[0]?.person_path || '',
-          },
-        ];
-      
-          navigation.navigate('Edit', {
-          imageId,
-          personData,
-        });
-        navigation.goBack();
-      }
-      else{
-        navigation.navigate('Edit', {
-          imageId,
-         
-        });
+  React.useCallback(() => {
+    const onBackPress = () => {
+      if (!hasSentData.current) {
+        hasSentData.current = true;
+
+        const imageId = imageDetails?.[0]?.person_id;
+
+        if (screen !== 'Details') {
+          const personData = [
+            {
+              name: name || 'Unknown',
+              gender: gender || 'U',
+              personPath: imageDetails?.[0]?.person_path || '',
+            },
+          ];
+ navigation.goBack();
+          // Instead of navigating again, just go back and pass data back using route params
+          // navigation.navigate('Edit', {
+          //   imageId,
+          //   personData,
+          // });
+
+        } else {
+          // Just go back to previous screen (Details screen)
           navigation.goBack();
+        }
       }
-          
-    }
-      };
 
-      // Listen for hardware back press
-      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return true; // prevent default back behavior
+    };
 
-      // Cleanup listener on unmount
-      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    }, [name, gender, imageDetails, navigation]) // Add navigation as dependency
-  );
+    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+    return () => {
+      BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    };
+  }, [name, gender, imageDetails, screen])
+);
+
   
   useEffect(() => {
     if (screen === 'Details') {
