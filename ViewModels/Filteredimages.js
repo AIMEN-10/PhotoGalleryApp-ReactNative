@@ -1,9 +1,13 @@
 
-import { getImagesForPerson, getDataByDate, getImagesByLocationId, getImagesByEventId, searchImages } from "../Databasequeries";
+import {
+  getImagesForPerson, getDataByDate, getImagesByLocationId, getImagesByEventId, searchImages,
+  getAllPersons, getAllImageData, getImagePersonMap, getAllPersonLinks
+
+} from "../Databasequeries";
 
 
 const Filteredimages = async (data) => {
-   
+
 
   try {
 
@@ -11,7 +15,66 @@ const Filteredimages = async (data) => {
       const parts = data.split(';');
       switch (parts[0]) {
         case "Person":
-          return await getImagesForPerson(parts[1]);
+          // return await getImagesForPerson(parts[1]);
+          const getAllPersonDataAsJson = async () => {
+            try {
+              const persons = await getAllPersons();
+              const images = await new Promise((resolve, reject) => {
+                getAllImageData((data) => {
+                  resolve(data);
+                });
+              });
+
+              const image_person_map = await getImagePersonMap();
+              const links = await getAllPersonLinks();
+
+              const jsonData = {
+                person_id: parts[1],
+                persons,
+                images,
+                image_person_map,
+                links,
+              };
+
+              // console.log("Full JSON Data:", JSON.stringify(jsonData, null, 2));
+              return jsonData;
+            } catch (error) {
+              console.error("Error building JSON data:", error);
+            }
+          };
+
+          const sendPersonGroupData = async () => {
+            try {
+              const data = await getAllPersonDataAsJson(); // Your combined data function
+
+              const response = await fetch(`${baseUrl}get_person_images`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+              });
+
+              if (!response.ok) {
+                throw new Error('Server error');
+              }
+
+              const result = await response.json();
+              console.log('Response from backend:', result);
+              const simplifiedImages = result.images.map(img => ({
+                id: img.id,
+                path: img.path
+              }));
+              return simplifiedImages;
+
+            } catch (error) {
+              console.error('Failed to send data:', error);
+            }
+          };
+          const result = await sendPersonGroupData();
+          console.log("r", result)
+          return result;
+
         case "Event":
           return await getImagesByEventId(parts[1]);
         case "Location":
@@ -19,11 +82,11 @@ const Filteredimages = async (data) => {
         case "Date":
           return await getDataByDate(parts[2]);
         default:
-          console.log("No matching condition found for data:", data); 
+          console.log("No matching condition found for data:", data);
           return [];
       }
     } else {
-      const images = await searchImages(data); 
+      const images = await searchImages(data);
       return images;
     }
   } catch (error) {

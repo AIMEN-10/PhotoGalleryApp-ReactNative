@@ -17,13 +17,13 @@ const ViewPhoto = ({ route }) => {
       setIsModalOpen(false); // close modal and expand image
     }
     else {
-      const imageDet = await getImageDetails(item.id);
-      if (imageDet.persons.length > 0) {
-        setpersons(imageDet.persons);
-         setIsModalOpen(true);
-        console.log("done");
-        console.log(imageDet.persons);
-      }
+    //   const imageDet = await getImageDetails(item.id);
+    //   if (imageDet.persons.length > 0) {
+    //     setpersons(imageDet.persons);
+    //      setIsModalOpen(true);
+    //     console.log("done");
+    //     console.log(imageDet.persons);
+    //   }
     }
   };
 
@@ -56,19 +56,19 @@ const ViewPhoto = ({ route }) => {
           />
         </View>
       </TouchableWithoutFeedback>
-      {isModalOpen && persons.length > 0 && (
+      {/* {isModalOpen && persons.length > 0 && (
   <View style={styles.facesScrollContainer}>
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       {persons.map((person, index) => (
         <Image
           key={index}
-          source={{ uri: baseUrl+person.person_path }} // ✅ Use person.person_path, not person_path directly
+          source={{ uri: baseUrl+person.person_path }} 
           style={styles.faceImage}
         />
       ))}
     </ScrollView>
   </View>
-)}
+)} */}
 
 
       <View style={{ flex: isModalOpen ? 0.5 : 0 }}>

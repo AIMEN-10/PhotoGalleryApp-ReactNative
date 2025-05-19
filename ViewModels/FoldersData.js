@@ -57,12 +57,27 @@ const FoldersData = async (data) => {
 
         const result = await response.json();
         console.log('Response from backend:', result);
+        const persons = result.map(item => {
+          const { id, name, gender, path } = item.Person;
+
+          return {
+            id,
+            name,
+            gender,
+            imagePath: path,
+          };
+        });
+        console.log('Extracted Persons:', persons);
+
+        return persons;
+
       } catch (error) {
         console.error('Failed to send data:', error);
       }
     };
-    const result = sendPersonGroupData();
-    console.log(result);
+    const result = await sendPersonGroupData();
+    console.log("r", result)
+    return result;
   }
   else if (value === "Event") {
     const groupbyeventdata = await getImagesGroupedByEvent();
