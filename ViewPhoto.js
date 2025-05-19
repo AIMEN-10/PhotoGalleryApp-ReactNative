@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Image, StyleSheet, SafeAreaView, Text, Dimensions, TouchableWithoutFeedback, BackHandler } from 'react-native';
+import { View, Image, StyleSheet, SafeAreaView, Text, Dimensions, TouchableWithoutFeedback, BackHandler ,ScrollView} from 'react-native';
 import Editnavbar from './Editnavbar';
 import colors from './theme/colors';
 import { getImageDetails } from './Databasequeries';
@@ -20,7 +20,9 @@ const ViewPhoto = ({ route }) => {
       const imageDet = await getImageDetails(item.id);
       if (imageDet.persons.length > 0) {
         setpersons(imageDet.persons);
+         setIsModalOpen(true);
         console.log("done");
+        console.log(imageDet.persons);
       }
     }
   };
@@ -54,19 +56,20 @@ const ViewPhoto = ({ route }) => {
           />
         </View>
       </TouchableWithoutFeedback>
-      {/* {isModalOpen && persons.length > 0 && (
-        <View style={styles.facesScrollContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {persons.map((faceUri, index) => (
-              <Image
-                key={index}
-                source={{ uri: faceUri }}
-                style={styles.faceImage}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      )} */}
+      {isModalOpen && persons.length > 0 && (
+  <View style={styles.facesScrollContainer}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      {persons.map((person, index) => (
+        <Image
+          key={index}
+          source={{ uri: baseUrl+person.person_path }} // ✅ Use person.person_path, not person_path directly
+          style={styles.faceImage}
+        />
+      ))}
+    </ScrollView>
+  </View>
+)}
+
 
       <View style={{ flex: isModalOpen ? 0.5 : 0 }}>
         <Editnavbar imageId={item.id} onModalToggle={setIsModalOpen} />

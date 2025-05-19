@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Image, Text, StyleSheet, Pressable, PermissionsAndroid, Platform, Alert } from 'react-native';
 import { requestMediaLibraryPermission } from '../Permission';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
-import { getAllImageData, InsertImageData, DeletetAllData, insertPerson, linkImageToPerson, checkIfHashExists } from '../Databasequeries';
+import { getAllImageData, InsertImageData, DeletetAllData, insertPerson, linkImageToPerson, checkIfHashExists ,resetImageTable} from '../Databasequeries';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -25,7 +25,7 @@ const ImageData = () => {
       const hasPermission = await requestMediaLibraryPermission();
       if (hasPermission) {
         //await DeletetAllData();
-        await getAllPhotos();
+        //await getAllPhotos();
 
 
         getAllImageData((data) => {
@@ -84,9 +84,9 @@ const ImageData = () => {
       const response = await fetch(`${baseUrl}image_processing`, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data', // Important for form-data uploads
-        },
+        // headers: {
+        //   'Content-Type': 'multipart/form-data', // Important for form-data uploads
+        // },
       });
 
       // Handle the server's response
@@ -119,9 +119,10 @@ const ImageData = () => {
 
 
   const getAllPhotos = async () => {
+    const resp=resetImageTable();
     try {
       const result = await CameraRoll.getPhotos({
-        first: 6,
+        first: 7,
         assetType: 'Photos',
       });
 

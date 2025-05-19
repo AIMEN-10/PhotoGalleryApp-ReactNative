@@ -81,7 +81,7 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
       
       db.transaction((txn) => {
         txn.executeSql(
-          'SELECT * FROM Image',
+          'SELECT * FROM Image WHERE is_deleted = 0',
           [],
           (t, res) => {
             for (let i = 0; i < res.rows.length; i++) {
@@ -379,15 +379,14 @@ const createPersonTable = async () => {
 
   
 const insertPerson = async ({person}) => {
-
   return new Promise((resolve, reject) => {
     // Ensure the Person table exists
     createPersonTable();
 
     db.transaction((txn) => {
       txn.executeSql(
-        `INSERT INTO person (name, path, gender) VALUES (?, ?, ?)`,
-        [person.name, person.path, person.gender],
+        `INSERT INTO person (name, path) VALUES (?, ?)`,
+        [person.name, person.path],
         (t, res) => {
           // If insertion is successful, log the ID and resolve the promise with the personId
           const personId = res.insertId;
@@ -841,7 +840,7 @@ GROUP BY p.id;
         return new Promise((resolve, reject) => {
           database.transaction(tx => {
             tx.executeSql(
-              'SELECT id FROM image WHERE hash = ?',
+              'SELECT id FROM image WHERE hash = ?AND is_deleted = 0',
               [hash],
               (_, { rows }) => {
                 resolve(rows.length > 0); // true if exists
@@ -1355,13 +1354,32 @@ const getImagePersonMap = () => {
 };
 
 
+const resetImageTable = () => {
+  db.transaction(tx => {
+    // Delete all data
+    tx.executeSql(
+      'DELETE FROM image;',
+      [],
+      () => console.log('All data deleted from image table'),
+      (_, error) => console.log('Delete error: ', error)
+    );
 
+    // Reset auto-increment counter
+    tx.executeSql(
+      "DELETE FROM sqlite_sequence WHERE name = 'image';",
+      [],
+      () => console.log('Auto-increment reset for image table'),
+      (_, error) => console.log('Reset error: ', error)
+    );
+  });
+};
 
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editDataForMultipleIds,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
   getImagesByEventId,markImageAsDeleted,getAllLocations,getAllPersonLinks,insertPersonLinkIfNotExists,searchImages,
-  getAllPersons,getImagePersonMap
+  getAllPersons,getImagePersonMap,
+  resetImageTable
 
 };
 
