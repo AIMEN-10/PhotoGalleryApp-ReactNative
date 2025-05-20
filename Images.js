@@ -22,7 +22,13 @@ const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) =>
       onLongPress={onLongPress}
     >
       <FastImage
-        source={{ uri: item.path, priority: FastImage.priority.normal }}
+        source={{ uri: item.path.startsWith('file://') ||
+              item.path.startsWith('content://') ||
+              item.path.startsWith('http')
+              ? item.path
+              : baseUrl + item.path,
+          
+          priority: FastImage.priority.normal }}
         style={styles.image}
         resizeMode={FastImage.resizeMode.cover}
       />
@@ -42,11 +48,15 @@ const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) =>
 
 const Images = ({ route }) => {
   const { data } = route.params || {};
+  console.log(data);
   let parts = [];
   if (typeof data === 'string' && data.includes(';')) {
    parts = data.split(';');
 
 } 
+
+
+
   const navigation = useNavigation();
 
   const [photos, setPhotos] = useState([]);
@@ -70,10 +80,18 @@ const Images = ({ route }) => {
   useEffect(() => {
     const loadData = async () => {
       if (!data) return;
+      if (Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
+    setPhotos(data);
+
+  console.log('Data is an array of objects');
+} else {
+  console.log('Data is not an array of objects');
+
       const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
       // console.log("here:",result);
       setPhotos(result);
     };
+  }
     loadData();
   }, [data, fetchedPhotosFromHook]);
 
@@ -112,6 +130,8 @@ const Images = ({ route }) => {
     setIsModalVisible(false);  // Close the modal
   };
 
+
+  
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
       <View style={styles.container}>

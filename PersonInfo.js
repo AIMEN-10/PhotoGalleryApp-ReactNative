@@ -1,63 +1,65 @@
-import React, { useState, useEffect ,useRef} from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Image, BackHandler } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { RadioButton } from 'react-native-paper';
 import colors from './theme/colors';
 
 const PersonInfo = ({ route }) => {
- // const { imageDetails, onGoBack } = route.params;
- //const route = useRoute();
- const { imageDetails, screen } = route.params;
- console.log(imageDetails);
+  // const { imageDetails, onGoBack } = route.params;
+  //const route = useRoute();
+  const { imageDetails, screen } = route.params;
+  console.log(imageDetails);
   const [name, setName] = useState('');
   const [gender, setGender] = useState('Male');
-  
+
   const navigation = useNavigation();
   const hasSentData = useRef(false);
-  
+
 
 
   useFocusEffect(
-  React.useCallback(() => {
-    const onBackPress = () => {
-      if (!hasSentData.current) {
-        hasSentData.current = true;
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (!hasSentData.current) {
+          hasSentData.current = true;
 
-        const imageId = imageDetails?.[0]?.person_id;
+          const imageId = imageDetails?.[0]?.person_id;
 
-        if (screen !== 'Details') {
-          const personData = [
-            {
-              name: name || 'Unknown',
-              gender: gender || 'U',
-              personPath: imageDetails?.[0]?.person_path || '',
-            },
-          ];
- navigation.goBack();
-          // Instead of navigating again, just go back and pass data back using route params
-          // navigation.navigate('Edit', {
-          //   imageId,
-          //   personData,
-          // });
+          if (screen !== 'Details') {
+            const personData = [
+              {
+                name: name || 'Unknown',
+                gender: gender || 'U',
+                personPath: imageDetails?.[0]?.person_path || '',
+              },
+            ];
+            route.params?.onGoBack?.(personData); // Call the callback with data
+            navigation.goBack();
 
-        } else {
-          // Just go back to previous screen (Details screen)
-          navigation.goBack();
+            // Instead of navigating again, just go back and pass data back using route params
+            // navigation.navigate('Edit', {
+            //   imageId,
+            //   personData,
+            // });
+
+          } else {
+            // Just go back to previous screen (Details screen)
+            navigation.goBack();
+          }
         }
-      }
 
-      return true; // prevent default back behavior
-    };
+        return true; // prevent default back behavior
+      };
 
-    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
-    return () => {
-      BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-    };
-  }, [name, gender, imageDetails, screen])
-);
+      return () => {
+        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+      };
+    }, [name, gender, imageDetails, screen])
+  );
 
-  
+
   useEffect(() => {
     if (screen === 'Details') {
       console.log('Details screen is active');
@@ -66,59 +68,65 @@ const PersonInfo = ({ route }) => {
       if (person?.person_name) setName(person.person_name);
       if (person?.gender) setGender(person.gender);
     }
-    else{
+    else {
       console.log('PersonInfo screen is active');
     }
   }, [screen]); // Add screen to dependencies if it can change
-  
-  
-  
- 
-  
+
+
+
+
+
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Name Person</Text>
-      <View style={styles.card}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: baseUrl+imageDetails[0].person_path }}
-            style={{ height: 100, width: '100%' }}
-          />
-        </View>
-        <View style={styles.formContainer}>
-          <Text style={styles.label}>Enter Name:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Name"
-            placeholderTextColor="#999"
-            value={name}
-            onChangeText={setName}
-          />
-          <View style={styles.radioGroup}>
-            <View style={styles.radioButton}>
-              <RadioButton
-                value="Male"
-                status={gender === 'Male' ? 'checked' : 'unchecked'}
-                onPress={() => setGender('Male')}
-                color={colors.dark}
-                uncheckedColor={colors.dark}
-              />
-              <Text style={styles.label}>Male</Text>
-            </View>
-            <View style={styles.radioButton}>
-              <RadioButton
-                value="Female"
-                status={gender === 'Female' ? 'checked' : 'unchecked'}
-                onPress={() => setGender('Female')}
-                color={colors.dark}
-                uncheckedColor={colors.dark}
-              />
-              <Text style={styles.label}>Female</Text>
+
+      {imageDetails.map((person, index) => (
+        <View key={person.person_id || index} style={styles.card}>
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: baseUrl + person.person_path }}
+              style={{ height: 100, width: '100%' }}
+            />
+          </View>
+          <View style={styles.formContainer}>
+            <Text style={styles.label}>Enter Name:</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Name"
+              placeholderTextColor="#999"
+              value={name}
+              onChangeText={setName}
+            />
+            <View style={styles.radioGroup}>
+              <View style={styles.radioButton}>
+
+                <RadioButton
+                  value="Male"
+                  status={gender === 'Male' ? 'checked' : 'unchecked'}
+                  onPress={() => setGender('Male')}
+                  color={colors.dark}
+                  uncheckedColor={colors.dark}
+                />
+                <Text style={styles.label}>Male</Text>
+              </View>
+              <View style={styles.radioButton}>
+                <RadioButton
+                  value="Female"
+                  status={gender === 'Female' ? 'checked' : 'unchecked'}
+                  onPress={() => setGender('Female')}
+                  color={colors.dark}
+                  uncheckedColor={colors.dark}
+                />
+                <Text style={styles.label}>Female</Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
+      ))}
+
     </View>
   );
 };
@@ -141,6 +149,7 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: colors.primary,
     borderRadius: 8,
+    marginBottom: 20,
   },
   imageContainer: {
     width: 100,

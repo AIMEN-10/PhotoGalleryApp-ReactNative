@@ -141,25 +141,25 @@ const Editscreen = (props) => {
 
       try {
         if (imageId) {
-            if (Array.isArray(imageId)) {
-              console.log(imageId)
-            }
-            else{
-          const imageDet = await getImageDetails(imageId);
-          setImageDetails(imageDet.persons);
-          console.log("Fetched image details:", imageDet.persons);
-          console.log("Fetched image details:", imageDetails);
-          if (imageDet) {
-            if (Array.isArray(imageDet.persons) && imageDet.persons.length > 0) {
-              setHasPerson(true);
+          if (Array.isArray(imageId)) {
+            console.log(imageId)
+          }
+          else {
+            const imageDet = await getImageDetails(imageId);
+            setImageDetails(imageDet.persons);
+            console.log("Fetched image details:", imageDet.persons);
+            console.log("Fetched image details:", imageDetails);
+            if (imageDet) {
+              if (Array.isArray(imageDet.persons) && imageDet.persons.length > 0) {
+                setHasPerson(true);
+              } else {
+                console.log("❌ No persons found in the image.");
+              }
             } else {
-              console.log("❌ No persons found in the image.");
+              console.log('No image details found for this ID!');
             }
-          } else {
-            console.log('No image details found for this ID!');
           }
         }
-      }
       }
       catch (error) {
         console.error('Error fetching image details:', error);
@@ -177,34 +177,34 @@ const Editscreen = (props) => {
       console.error('❌ Failed to clear AsyncStorage:', e);
     }
   };
-  const [selectedEvents, setSelectedEvents] = useState([]); 
+  const [selectedEvents, setSelectedEvents] = useState([]);
 
   const handleSelectedEvents = (events) => {
 
     const selected = Object.keys(events).filter((key) => events[key]).map((key) => events[key]);
-    setSelectedEvents(selected); 
-   
+    setSelectedEvents(selected);
+
     console.log('Selected events:', selected);
   };
   const recognizePerson = async (name, imagePath) => {
-        // const url = `http://192.168.100.22:5000/recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(name)}`;
+    // const url = `http://192.168.100.22:5000/recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(name)}`;
 
     const url = `${baseUrl}recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(name)}`;
-  
+
     try {
       const response = await fetch(url, {
         method: 'POST',
       });
-  
+
       const result = await response.json();
       console.log('Recognition result:', result);
     } catch (error) {
       console.error('Error recognizing person:', error);
     }
   };
-  
-  
-  
+
+
+
   const handleSave = async () => {
     const latestValue = await getLatestSavedValue();
     const persons = latestValue;          // Get the list of persons
@@ -252,19 +252,24 @@ const Editscreen = (props) => {
                 style={styles.inputname}
                 value={name}
                 onChangeText={(text) => setname(text)} // Update state on text change
-                placeholder="Enter name"
+                placeholder="Edit person name"
                 placeholderTextColor={colors.grey}
+                editable={false}
               />
               <Text
                 style={styles.label}
                 onPress={() =>
                   navigation.navigate('PersonInfo', {
-                    imageDetails,screen :'edit'
+                    imageDetails, screen: 'edit',
+                    onGoBack: (personData) => {
+                      // Handle returned data here
+                      
+                      console.log('Returned data:', personData);
+                      saveToStorageOrBackend(personData);
+                      setPersonDataa(personData);
+                    },
                   }
-                    // onGoBack: (data) => {
-                    //   console.log('Got dataaa from PersonInfo:', data);
-                    //   setpersondata(data); 
-                    // },}
+                   
                   )
                 }
               >

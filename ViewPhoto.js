@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Image, StyleSheet, SafeAreaView, Text, Dimensions, TouchableWithoutFeedback, BackHandler ,ScrollView} from 'react-native';
+import { View, Image, StyleSheet, SafeAreaView, Text, Dimensions, TouchableWithoutFeedback, BackHandler, ScrollView } from 'react-native';
 import Editnavbar from './Editnavbar';
 import colors from './theme/colors';
-import { getImageDetails } from './Databasequeries';
+import { getImageDetails,getPersonAndLinkedList } from './Databasequeries';
+import { useNavigation } from '@react-navigation/native';
+
 
 const { width } = Dimensions.get('window');
 
@@ -11,35 +13,64 @@ const ViewPhoto = ({ route }) => {
   const parts = data.split(';');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [persons, setpersons] = useState([]);
+  const [showFaces, setShowFaces] = useState(false);
+  const navigation = useNavigation();
+
 
   const handleImageTap = async () => {
     if (isModalOpen) {
-      setIsModalOpen(false); // close modal and expand image
+      setIsModalOpen(false);
     }
     else {
-    //   const imageDet = await getImageDetails(item.id);
-    //   if (imageDet.persons.length > 0) {
-    //     setpersons(imageDet.persons);
-    //      setIsModalOpen(true);
-    //     console.log("done");
-    //     console.log(imageDet.persons);
-    //   }
+      // const imageDet = await getImageDetails(item.id);
+      // if (imageDet.persons.length > 0) {
+      //   setpersons(imageDet.persons);
+      //   //  setIsModalOpen(true);
+      //   console.log("done");
+      //   console.log(imageDet.persons);
+      // }
+      if (showFaces) {
+        setShowFaces(false);
+      } else {
+        if (persons.length === 0) {
+          const imageDet = await getImageDetails(item.id);
+          if (imageDet.persons.length > 0) {
+            setpersons(imageDet.persons);
+          }
+        }
+        setShowFaces(true);
+      }
     }
   };
 
+  const showtrainingimages = async (id) => {
+    console.log("showtrainingimages",id);
 
+    getPersonAndLinkedList(id, (personList, statusCode) => {
+    if (statusCode === 200) {
+      console.log("✅ Linked persons found:", personList);
+      navigation.navigate('Images', { data:personList });
+      
+       
+    } else if (statusCode === 404) {
+      console.log("❌ Person not found.");
+    } else {
+      console.log("⚠️ Error fetching linked data.");
+    }
+  });
+  }
   useEffect(() => {
     const backAction = () => {
       if (isModalOpen) {
         setIsModalOpen(false);
-        return true; // Prevent default back behavior
+        return true;
       }
-      return false; // Allow default back behavior
+      return false;
     };
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
 
-    return () => backHandler.remove(); // Cleanup on unmount
+    return () => backHandler.remove();
   }, [isModalOpen]);
 
   return (
@@ -48,36 +79,43 @@ const ViewPhoto = ({ route }) => {
         <Text style={styles.text}>{parts[2] || 'Unknown'}</Text>
       </View>
 
+
       <TouchableWithoutFeedback onPress={handleImageTap}>
         <View style={[styles.imageWrapper, { flex: isModalOpen ? 0.5 : 1 }]}>
           <Image
             source={{ uri: item.path }}
             style={styles.image}
           />
+
+          {showFaces && persons.length > 0 && (
+            <View style={styles.facesOverlay}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {persons.map((person, index) => (
+                  <TouchableWithoutFeedback
+                    key={person.person_id || index} 
+                    onPress={() => showtrainingimages(person.person_id)} 
+                  >
+                    <Image
+                      source={{ uri: baseUrl + person.person_path }}
+                      style={styles.faceImage}
+                    />
+                  </TouchableWithoutFeedback>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
         </View>
       </TouchableWithoutFeedback>
-      {/* {isModalOpen && persons.length > 0 && (
-  <View style={styles.facesScrollContainer}>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      {persons.map((person, index) => (
-        <Image
-          key={index}
-          source={{ uri: baseUrl+person.person_path }} 
-          style={styles.faceImage}
-        />
-      ))}
-    </ScrollView>
-  </View>
-)} */}
+
+
 
 
       <View style={{ flex: isModalOpen ? 0.5 : 0 }}>
         <Editnavbar imageId={item.id} onModalToggle={setIsModalOpen} />
       </View>
 
-      {/* <View style={{ flex: isModalOpen ? 0.5 : 0 }}>
-        <Editnavbar imageId={item.id} onModalToggle={setIsModalOpen} />
-      </View> */}
+
     </SafeAreaView>
   );
 };
@@ -102,19 +140,29 @@ const styles = StyleSheet.create({
   imageWrapper: {
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative', // This is critical for overlaying children absolutely
+    width: width,
+    height: '100%',
   },
+
   image: {
     width: width,
     height: '100%',
     resizeMode: 'contain',
   },
 
-  facesScrollContainer: {
+  facesScrollContainerOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     height: 100,
     backgroundColor: '#f9f9f9',
     paddingVertical: 5,
     paddingHorizontal: 10,
+    zIndex: 5,
   },
+
 
   faceImage: {
     width: 80,
@@ -123,6 +171,17 @@ const styles = StyleSheet.create({
     marginRight: 10,
     resizeMode: 'cover',
   },
+  facesOverlay: {
+    position: 'absolute',
+    bottom: 60, // Distance from bottom of image
+    left: 0,
+    right: 0,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Optional: subtle overlay background
+    paddingVertical: 5,
+    zIndex: 10,
+  },
+
 
 });
 

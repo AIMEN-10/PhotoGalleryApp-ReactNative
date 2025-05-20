@@ -77,24 +77,45 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
 //   });
 // };
     const getAllImageData = (callback) => {
-      const imageData = [];
-      
-      db.transaction((txn) => {
-        txn.executeSql(
-          'SELECT * FROM Image WHERE is_deleted = 0',
-          [],
-          (t, res) => {
-            for (let i = 0; i < res.rows.length; i++) {
-              imageData.push(res.rows.item(i)); 
-            }
-            callback(imageData);
-          },
-          (error) => {
-            console.log('Error fetching data: ', error.message);
-          }
-        );
-      });
-    };
+  const imageData = [];
+
+  db.transaction((txn) => {
+    txn.executeSql(
+      `SELECT *
+       FROM Image img
+       WHERE img.is_deleted = 0
+         AND (
+           
+           img.event_date IS NULL OR TRIM(img.event_date) = '' OR
+           img.location_id IS NULL OR TRIM(img.location_id) = ''
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM imageperson ip
+           JOIN person p ON ip.person_id = p.id
+           WHERE ip.image_id = img.id
+             AND TRIM(LOWER(p.name)) != 'unknown'
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM imageevent ie
+           WHERE ie.image_id = img.id
+         );`,
+      [],
+      (t, res) => {
+        for (let i = 0; i < res.rows.length; i++) {
+          imageData.push(res.rows.item(i));
+        }
+        callback(imageData);
+      },
+      (t, error) => {
+        console.log('Error fetching data: ', error.message);
+        return true; // propagate the error
+      }
+    );
+  });
+};
+
 
 
     const getImageDetails = async (imageId) => {
@@ -1184,40 +1205,124 @@ const getAllPersonLinks = () => {
   });
 };
 
-
-
 const insertPersonLinkIfNotExists = (person1_id, person2_id) => {
   createPersonLinksTable();
+
   db.transaction((txn) => {
-    // Step 1: Check if the link already exists (in either direction)
+    // Step 1: Fetch both persons
     txn.executeSql(
-      `SELECT * FROM person_links 
-       WHERE (person1_id = ? AND person2_id = ?) 
-          OR (person1_id = ? AND person2_id = ?)`,
-      [person1_id, person2_id, person2_id, person1_id],
+      `SELECT id, name, gender FROM person WHERE id IN (?, ?)`,
+      [person1_id, person2_id],
       (sqlTxn, res) => {
-        if (res.rows.length > 0) {
-          console.log('Link already exists between', person1_id, 'and', person2_id);
-        } else {
-          // Step 2: Insert new link
+        if (res.rows.length !== 2) {
+          console.log('One or both persons not found.');
+          return;
+        }
+
+        let person1 = null;
+        let person2 = null;
+        for (let i = 0; i < res.rows.length; i++) {
+          const row = res.rows.item(i);
+          if (row.id === person1_id) person1 = row;
+          else if (row.id === person2_id) person2 = row;
+        }
+
+        // Ensure both are loaded
+        if (!person1 || !person2) {
+          console.log('Failed to retrieve both persons');
+          return;
+        }
+
+        const name1 = person1.name.toLowerCase();
+        const name2 = person2.name.toLowerCase();
+        const isUnknown1 = name1 === 'unknown';
+        const isUnknown2 = name2 === 'unknown';
+
+        // Step 2: Apply update logic
+        if (!isUnknown1 && isUnknown2) {
+          // Replace unknown person2 with known person1
           txn.executeSql(
-            `INSERT INTO person_links (person1_id, person2_id) VALUES (?, ?)`,
-            [person1_id, person2_id],
-            (insertTxn, insertRes) => {
-              console.log('Link inserted successfully:', person1_id, person2_id);
-            },
-            (insertTxn, error) => {
-              console.log('Error inserting link:', error.message);
-            }
+            `UPDATE person SET name = ?, gender = ? WHERE id = ?`,
+            [person1.name, person1.gender, person2_id]
+          );
+        } else if (isUnknown1 && !isUnknown2) {
+          // Replace unknown person1 with known person2
+          txn.executeSql(
+            `UPDATE person SET name = ?, gender = ? WHERE id = ?`,
+            [person2.name, person2.gender, person1_id]
+          );
+        } else if (!isUnknown1 && !isUnknown2) {
+          // Both are known — replace person1 with person2
+          txn.executeSql(
+            `UPDATE person SET name = ?, gender = ? WHERE id = ?`,
+            [person2.name, person2.gender, person1_id]
           );
         }
+
+        // Step 3: Check for existing link
+        txn.executeSql(
+          `SELECT * FROM person_links 
+           WHERE (person1_id = ? AND person2_id = ?) 
+              OR (person1_id = ? AND person2_id = ?)`,
+          [person1_id, person2_id, person2_id, person1_id],
+          (checkTxn, linkRes) => {
+            if (linkRes.rows.length > 0) {
+              console.log('Link already exists between', person1_id, 'and', person2_id);
+            } else {
+              // Insert new link
+              txn.executeSql(
+                `INSERT INTO person_links (person1_id, person2_id) VALUES (?, ?)`,
+                [person1_id, person2_id],
+                () => console.log('Link inserted successfully:', person1_id, person2_id),
+                (insertTxn, error) => console.log('Error inserting link:', error.message)
+              );
+            }
+          },
+          (checkTxn, error) => {
+            console.log('Error checking for existing link:', error.message);
+          }
+        );
       },
       (sqlTxn, error) => {
-        console.log('Error checking for existing link:', error.message);
+        console.log('Error retrieving persons:', error.message);
       }
     );
   });
 };
+
+
+// const insertPersonLinkIfNotExists = (person1_id, person2_id) => {
+//   createPersonLinksTable();
+//   db.transaction((txn) => {
+//     // Step 1: Check if the link already exists (in either direction)
+//     txn.executeSql(
+//       `SELECT * FROM person_links 
+//        WHERE (person1_id = ? AND person2_id = ?) 
+//           OR (person1_id = ? AND person2_id = ?)`,
+//       [person1_id, person2_id, person2_id, person1_id],
+//       (sqlTxn, res) => {
+//         if (res.rows.length > 0) {
+//           console.log('Link already exists between', person1_id, 'and', person2_id);
+//         } else {
+//           // Step 2: Insert new link
+//           txn.executeSql(
+//             `INSERT INTO person_links (person1_id, person2_id) VALUES (?, ?)`,
+//             [person1_id, person2_id],
+//             (insertTxn, insertRes) => {
+//               console.log('Link inserted successfully:', person1_id, person2_id);
+//             },
+//             (insertTxn, error) => {
+//               console.log('Error inserting link:', error.message);
+//             }
+//           );
+//         }
+//       },
+//       (sqlTxn, error) => {
+//         console.log('Error checking for existing link:', error.message);
+//       }
+//     );
+//   });
+// };
 
 //search 
 const searchImages = (filters) => {
@@ -1374,11 +1479,80 @@ const resetImageTable = () => {
   });
 };
 
+
+
+
+const getPersonAndLinkedList = (personId, callback) => {
+  
+  db.transaction(tx => {
+    // Step 1: Get main person
+    tx.executeSql(
+      'SELECT * FROM person WHERE id = ?',
+      [personId],
+      (txObj, { rows }) => {
+        if (rows.length === 0) {
+          callback([], 404); // Not found
+          return;
+        }
+
+        const mainPerson = rows.item(0);
+
+        // Step 2: Get all linked person IDs (bidirectional)
+        tx.executeSql(
+          `SELECT person2_id AS linked_id FROM person_links WHERE person1_id = ?
+           UNION
+           SELECT person1_id AS linked_id FROM person_links WHERE person2_id = ?`,
+          [personId, personId],
+          (txObj, result) => {
+            const linkedIds = [];
+            for (let i = 0; i < result.rows.length; i++) {
+              linkedIds.push(result.rows.item(i).linked_id);
+            }
+
+            if (linkedIds.length === 0) {
+              // Only return the main person
+              callback([mainPerson], 200);
+              return;
+            }
+
+            // Step 3: Query linked persons
+            const placeholders = linkedIds.map(() => '?').join(', ');
+            tx.executeSql(
+              `SELECT * FROM person WHERE id IN (${placeholders})`,
+              linkedIds,
+              (txObj, res2) => {
+                const linkedPersons = [];
+                for (let i = 0; i < res2.rows.length; i++) {
+                  linkedPersons.push(res2.rows.item(i));
+                }
+
+                const allPersons = [mainPerson, ...linkedPersons];
+                callback(allPersons, 200);
+              },
+              (txObj, error) => {
+                console.log('Error fetching linked persons:', error.message);
+                callback([], 500);
+              }
+            );
+          },
+          (txObj, error) => {
+            console.log('Error fetching links:', error.message);
+            callback([], 500);
+          }
+        );
+      },
+      (txObj, error) => {
+        console.log('Error fetching main person:', error.message);
+        callback([], 500);
+      }
+    );
+  });
+};
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editDataForMultipleIds,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
   getImagesByEventId,markImageAsDeleted,getAllLocations,getAllPersonLinks,insertPersonLinkIfNotExists,searchImages,
-  getAllPersons,getImagePersonMap,
+  getAllPersons,getImagePersonMap,getPersonAndLinkedList,
   resetImageTable
 
 };
