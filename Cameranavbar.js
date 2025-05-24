@@ -3,7 +3,7 @@ import { View, Image, Text, Alert, StyleSheet } from 'react-native';
 import { IconButton } from 'react-native-paper'; 
 import * as RNImagePicker from 'react-native-image-picker';
 import ImagePicker from 'react-native-image-crop-picker';
-import { getAllImageData, InsertImageData, DeletetAllData, insertPerson, linkImageToPerson, checkIfHashExists ,resetImageTable} from './Databasequeries';
+import { InsertImageData, DeletetAllData, insertPerson, linkImageToPerson, checkIfHashExists ,resetImageTable} from './Databasequeries';
 
 import moment from 'moment';
 import colors from './theme/colors';

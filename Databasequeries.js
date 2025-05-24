@@ -81,26 +81,8 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
 
   db.transaction((txn) => {
     txn.executeSql(
-      `SELECT *
-       FROM Image img
-       WHERE img.is_deleted = 0
-         AND (
-           
-           img.event_date IS NULL OR TRIM(img.event_date) = '' OR
-           img.location_id IS NULL OR TRIM(img.location_id) = ''
-         )
-         AND NOT EXISTS (
-           SELECT 1
-           FROM imageperson ip
-           JOIN person p ON ip.person_id = p.id
-           WHERE ip.image_id = img.id
-             AND TRIM(LOWER(p.name)) != 'unknown'
-         )
-         AND NOT EXISTS (
-           SELECT 1
-           FROM imageevent ie
-           WHERE ie.image_id = img.id
-         );`,
+      `SELECT * FROM Image WHERE is_deleted = 0` // Fetch only non-deleted images
+,
       [],
       (t, res) => {
         for (let i = 0; i < res.rows.length; i++) {
@@ -116,7 +98,45 @@ const db = openDatabase({ name: 'PhotoGallery.db' });
   });
 };
 
+ const getAllImages = (callback) => {
+  const imageData = [];
 
+  db.transaction((txn) => {
+    txn.executeSql(
+      `SELECT *
+FROM Image img
+WHERE img.is_deleted = 0
+  AND (
+    img.event_date IS NULL OR TRIM(img.event_date) = ''
+    OR img.location_id IS NULL OR TRIM(img.location_id) = ''
+    OR EXISTS (
+      SELECT 1
+      FROM imageperson ip
+      JOIN person p ON ip.person_id = p.id
+      WHERE ip.image_id = img.id
+        AND TRIM(LOWER(p.name)) = 'unknown'
+    )
+    OR NOT EXISTS (
+      SELECT 1
+      FROM imageevent ie
+      WHERE ie.image_id = img.id
+    )
+  );`
+,
+      [],
+      (t, res) => {
+        for (let i = 0; i < res.rows.length; i++) {
+          imageData.push(res.rows.item(i));
+        }
+        callback(imageData);
+      },
+      (t, error) => {
+        console.log('Error fetching data: ', error.message);
+        return true; // propagate the error
+      }
+    );
+  });
+};
 
     const getImageDetails = async (imageId) => {
       console.log("Fetching image details for ID:", imageId);
@@ -1594,7 +1614,7 @@ export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageTo
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editDataForMultipleIds,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
   getImagesByEventId,markImageAsDeleted,getAllLocations,getAllPersonLinks,insertPersonLinkIfNotExists,searchImages,
-  getAllPersons,getImagePersonMap,getPersonAndLinkedList,getPersonData,handleUpdateEmbeddings ,
+  getAllPersons,getImagePersonMap,getPersonAndLinkedList,getPersonData,handleUpdateEmbeddings ,getAllImages,
   resetImageTable
 
 };

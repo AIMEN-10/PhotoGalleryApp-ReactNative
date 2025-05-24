@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Image, Text, StyleSheet, Pressable, PermissionsAndroid, Platform, Alert } from 'react-native';
 import { requestMediaLibraryPermission } from '../Permission';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
-import { getAllImageData, InsertImageData, DeletetAllData, insertPerson, linkImageToPerson, checkIfHashExists ,resetImageTable} from '../Databasequeries';
+import { getAllImages, InsertImageData, DeletetAllData, insertPerson, linkImageToPerson, checkIfHashExists ,resetImageTable} from '../Databasequeries';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -28,7 +28,7 @@ const ImageData = () => {
         //await getAllPhotos();
 
 
-        getAllImageData((data) => {
+        getAllImages((data) => {
           const paths = data.map(item => ({
             id: item.id,    // Accessing the 'id' from the item
             path: item.path // Accessing the 'path' from the item
