@@ -8,7 +8,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AddEventPopup from './AddEventPopup';
 import Location from './Location';
-import { getAllEvents, getImageDetails, editDataForMultipleIds } from './Databasequeries';
+import { getAllEvents, getImageDetails, editDataForMultipleIds, getPersonData, getAllPersonLinks,getAllPersons,handleUpdateEmbeddings } from './Databasequeries';
 import { useFocusEffect } from '@react-navigation/native';
 import MultipleEvents from './MultipleEvents';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -198,11 +198,67 @@ const Editscreen = (props) => {
 
       const result = await response.json();
       console.log('Recognition result:', result);
+
+
     } catch (error) {
       console.error('Error recognizing person:', error);
     }
+    const persons= await getAllPersons();
+    const links=await getAllPersonLinks();
+    const person1=imagePath.split('/')[2];
+    // console.log('abccc', imagePath);
+    const data_url = `${baseUrl}load_embeddings_for_recognition`;
+    const payload = {
+    persons,
+    links,
+    person1,
   };
 
+  try {
+    const response = await fetch(data_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    console.log('Embedding group after recognition:', result);
+    await handleUpdateEmbeddings(name,result);
+
+    // return result.group || result;  // adapt depending on response structure
+  } catch (error) {
+    console.error('Error fetching embedding group for recognition:', error);
+    return [];
+  }
+  };
+
+  const getemb = async ( links, person1, db_person) => {
+  const url = `${baseUrl}load_embeddings`;
+  const payload = {
+    links,
+    person1,
+    db_person
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    console.log('Embedding group:', result);
+    return result.group || result;  // adapt depending on response structure
+  } catch (error) {
+    console.error('Error fetching embedding group:', error);
+    return [];
+  }
+};
 
 
   const handleSave = async () => {
@@ -262,14 +318,38 @@ const Editscreen = (props) => {
                   navigation.navigate('PersonInfo', {
                     imageDetails, screen: 'edit',
                     onGoBack: (personData) => {
-                      // Handle returned data here
-                      
-                      console.log('Returned data:', personData);
                       saveToStorageOrBackend(personData);
                       setPersonDataa(personData);
-                    },
-                  }
-                   
+                      console.log('Returned data:', personData);
+
+                      const fetchPersons = async () => {
+                        for (const person of personData) {
+                          if (person.name) {
+                            const personDataList = await getPersonData(person.name);
+                             console.log('Person(s) for', person.personPath, ':', personDataList);
+                             const Links=await getAllPersonLinks();
+                            //call api 
+                            for (const p of personDataList) {
+                              if (p.path) {
+                                const fileName = p.path.split('/').pop();
+
+                                try {
+                                  const names = await getemb(Links, person,p);
+                                  console.log('Embedding names for', fileName, ':', names);
+                                } catch (error) {
+                                  console.error('Error fetching embeddings for', fileName, error);
+                                }
+                              }
+                              }
+                            }
+                          }
+                        };
+
+                        fetchPersons();
+
+                      },
+                    }
+
                   )
                 }
               >

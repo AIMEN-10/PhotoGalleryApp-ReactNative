@@ -1548,11 +1548,53 @@ const getPersonAndLinkedList = (personId, callback) => {
     );
   });
 };
+const getPersonData = (person_name) => {
+  return new Promise((resolve, reject) => {
+    db.transaction((txn) => {
+      txn.executeSql(
+        `SELECT * FROM person where  name = ?`,
+        [person_name],
+        (sqlTxn, res) => {
+          let persons = [];
+          for (let i = 0; i < res.rows.length; i++) {
+            persons.push(res.rows.item(i));
+          }
+          resolve(persons);
+        },
+        (sqlTxn, error) => reject(error.message)
+      );
+    });
+  });
+};
+
+const updatePersonWhereEmbedding = async (name, embedding) => {
+  const database = await db;
+
+  await database.transaction(tx => {
+    tx.executeSql(
+      `UPDATE person 
+       SET name = ? 
+       WHERE path = ?`,
+      [name, embedding]
+    );
+  });
+};
+
+const handleUpdateEmbeddings = async (name, result) => {
+  const embeddings = result.embeddings;
+
+  for (const embedding of embeddings) {
+    console.log(embedding);
+    var emb='face_images/'+ embedding;
+    await updatePersonWhereEmbedding(name, emb);
+  }
+};
+
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editDataForMultipleIds,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
   getImagesByEventId,markImageAsDeleted,getAllLocations,getAllPersonLinks,insertPersonLinkIfNotExists,searchImages,
-  getAllPersons,getImagePersonMap,getPersonAndLinkedList,
+  getAllPersons,getImagePersonMap,getPersonAndLinkedList,getPersonData,handleUpdateEmbeddings ,
   resetImageTable
 
 };

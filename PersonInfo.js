@@ -28,6 +28,7 @@ const PersonInfo = ({ route }) => {
           if (screen !== 'Details') {
             const personData = [
               {
+                id:imageDetails?.[0]?.person_id,
                 name: name || 'Unknown',
                 gender: gender || 'U',
                 personPath: imageDetails?.[0]?.person_path || '',
