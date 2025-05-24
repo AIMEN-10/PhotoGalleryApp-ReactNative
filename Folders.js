@@ -14,7 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
 import FoldersData from './ViewModels/FoldersData';
-import { getAllPersonLinks, insertPersonLinkIfNotExists } from './Databasequeries';
+import { getAllPersonLinks, insertPersonLinkIfNotExists, getAllPersons,handleUpdateEmbeddings } from './Databasequeries';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -127,7 +127,8 @@ const Folders = ({ route }) => {
 
   const handleDrop = (draggedId, dropX, dropY) => {
     for (const id in layouts) {
-      if (id === draggedId) continue;
+      const numericId = Number(id);  // Convert string key to number
+    if (numericId === Number(draggedId)) continue;
       const { pageX, pageY, width, height } = layouts[id];
       if (
         dropX >= pageX &&
@@ -146,28 +147,60 @@ const Folders = ({ route }) => {
 
         // fetchLocations();
         Alert.alert(
-  'Do you want to merge?',
-  // `Dragged ID: ${draggedId}\nDropped On ID: ${id}`,
-  '',
-  [
-    {
-      text: 'Cancel',
-      style: 'cancel',
-    },
-    {
-      text: 'OK',
-      onPress: async () => {
-        try {
-          const data = await insertPersonLinkIfNotExists(draggedId, id);
-          console.log(data);
-        } catch (error) {
-          console.error('Failed to link person:', error);
-        }
-      },
-    },
-  ],
-  { cancelable: true }
-);
+          'Do you want to merge?',
+          // `Dragged ID: ${draggedId}\nDropped On ID: ${id}`,
+          '',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: 'OK',
+              onPress: async () => {
+                try {
+                  const data = await insertPersonLinkIfNotExists(draggedId,  numericId);
+                  
+                  const persons = await getAllPersons();
+                  const links = await getAllPersonLinks();
+                  const draggedPerson = result.find(p => p.id === draggedId);
+                  const person1 = (draggedPerson?.imagePath ?? '').split('/').pop();
+                  const name = draggedPerson?.name ?? '';
+
+                  console.log('pathh',person1);
+                  const data_url = `${baseUrl}load_embeddings_for_recognition`;
+                  const payload = {
+                    persons,
+                    links,
+                    person1,
+                  };
+
+                  try {
+                    const response = await fetch(data_url, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    console.log('Embedding group after recognition:', result);
+                    await handleUpdateEmbeddings(name, result);
+
+                    // return result.group || result;  // adapt depending on response structure
+                  } catch (error) {
+                    console.error('Error fetching embedding group for recognition:', error);
+                    return [];
+                  }
+                } catch (error) {
+                  console.error('Failed to link person:', error);
+                }
+              },
+            },
+          ],
+          { cancelable: true }
+        );
 
         return;
       }
