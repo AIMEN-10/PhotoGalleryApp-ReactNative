@@ -333,40 +333,40 @@ const Editscreen = (props) => {
                 onPress={() =>
                   navigation.navigate('PersonInfo', {
                     imageDetails, screen: 'edit',
-                   onGoBack: (personData) => {
-  saveToStorageOrBackend(personData);
-  setPersonDataa(personData);
-  console.log('Returned data:', personData);
+                    onGoBack: (personData) => {
+                      saveToStorageOrBackend(personData);
+                      setPersonDataa(personData);
+                      console.log('Returned data:', personData);
 
-  const fetchPersons = async () => {
-    const groupedPersons = {};
+                      const fetchPersons = async () => {
+                        const groupedPersons = {};
 
-    for (const person of personData) {
-      if (person.name && person.name !== "unknown") {
-        if (!groupedPersons[person.name]) {
-          groupedPersons[person.name] = [];
-        }
-        groupedPersons[person.name].push(person);
-      }
-    }
+                        for (const person of personData) {
+                          if (person.name && person.name !== "unknown") {
+                            if (!groupedPersons[person.name]) {
+                              groupedPersons[person.name] = [];
+                            }
+                            groupedPersons[person.name].push(person);
+                          }
+                        }
 
-    for (const name in groupedPersons) {
-      console.log('Processing name:', name);
+                        for (const name in groupedPersons) {
+                          console.log('Processing name:', name);
 
-      const personDataList = await getPersonData(name);
-      console.log('Person(s) for', name, ':', personDataList);
+                          const personDataList = await getPersonData(name);
+                          console.log('Person(s) for', name, ':', personDataList);
 
-      const Links = await getAllPersonLinks();
+                          const Links = await getAllPersonLinks();
 
-      for (const person of groupedPersons[name]) {
-        // Now you're handling each person with the same name individually
-        await handleEmbeddingCheck(personDataList, Links, person);
-      }
-    }
-  };
+                          for (const person of groupedPersons[name]) {
+                            // Now you're handling each person with the same name individually
+                            await handleEmbeddingCheck(personDataList, Links, person);
+                          }
+                        }
+                      };
 
-  fetchPersons();
-}
+                      fetchPersons();
+                    }
 
                   }
 
@@ -378,12 +378,12 @@ const Editscreen = (props) => {
             </View>
           </View>
         )}
- <EmbeddingModal
-        visible={embmodalVisible}
-        onClose={() => setembModalVisible(false)}
-        embeddingData={embeddingResult}
-        selectedPerson={selectedPerson}
-      />
+        <EmbeddingModal
+          visible={embmodalVisible}
+          onClose={() => setembModalVisible(false)}
+          embeddingData={embeddingResult}
+          selectedPerson={selectedPerson}
+        />
         <Text style={styles.label}>Event</Text>
 
         <View style={{ flexDirection: 'row' }}>
