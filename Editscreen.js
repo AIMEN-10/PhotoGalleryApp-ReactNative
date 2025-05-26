@@ -239,14 +239,14 @@ const Editscreen = (props) => {
     }
   };
 
-  const getemb = async (persons, links, person1, db_person) => {
+  const getemb = async (persons, links, person1,personrecords) => {
 
     const url = `${baseUrl}load_embeddings`;
     const payload = {
       persons,
       links,
       person1,
-      db_person
+      personrecords
     };
 
     try {
@@ -294,8 +294,8 @@ const Editscreen = (props) => {
     clearAllAsyncStorage()
 
   };
-  const handleEmbeddingCheck = async (persons, links, person1) => {
-    const result = await getemb(persons, links, person1);
+  const handleEmbeddingCheck = async (persons, links, person1,personrecords) => {
+    const result = await getemb(persons, links, person1,personrecords);
     if (result && Object.keys(result).length > 0) {
       console.log('Embedding group:', person1);
       setSelectedPerson(person1);
@@ -354,13 +354,14 @@ const Editscreen = (props) => {
                           console.log('Processing name:', name);
 
                           const personDataList = await getPersonData(name);
+                          const personrecords=await getAllPersons();
                           console.log('Person(s) for', name, ':', personDataList);
 
                           const Links = await getAllPersonLinks();
 
                           for (const person of groupedPersons[name]) {
                             // Now you're handling each person with the same name individually
-                            await handleEmbeddingCheck(personDataList, Links, person);
+                            await handleEmbeddingCheck(personDataList, Links, person,personrecords);
                           }
                         }
                       };

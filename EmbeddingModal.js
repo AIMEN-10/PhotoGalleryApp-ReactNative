@@ -14,7 +14,7 @@ import {
 
 const EmbeddingModal = ({ visible, onClose, embeddingData ,selectedPerson}) => {
   const [selectedGroupKeys, setSelectedGroupKeys] = useState([]);
-// console.log('emb data',embeddingData,selectedPerson);
+ console.log('emb data',embeddingData);
   if (!embeddingData || Object.keys(embeddingData).length === 0) return null;
 
   const handleGroupToggle = (key) => {
