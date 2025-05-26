@@ -4,52 +4,46 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { RadioButton } from 'react-native-paper';
 import colors from './theme/colors';
 
-const PersonInfo = ({ route }) => {
-  // const { imageDetails, onGoBack } = route.params;
-  //const route = useRoute();
-  const { imageDetails, screen } = route.params;
-  console.log(imageDetails);
-  const [name, setName] = useState('');
-  const [gender, setGender] = useState('Male');
 
+const PersonInfo = ({ route }) => {
+  const { imageDetails, screen } = route.params;
   const navigation = useNavigation();
   const hasSentData = useRef(false);
 
+  const [persons, setPersons] = useState([]);
 
+  // Initialize persons state from imageDetails
+  useEffect(() => {
+    if (imageDetails && imageDetails.length > 0) {
+      const initializedPersons = imageDetails.map((person) => ({
+        id: person.person_id,
+        path: person.person_path,
+        name: person.person_name || '',
+        gender: person.gender || 'Male',
+      }));
+      setPersons(initializedPersons);
+    }
+  }, [imageDetails]);
 
+  // Handle Android back button
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
         if (!hasSentData.current) {
           hasSentData.current = true;
 
-          const imageId = imageDetails?.[0]?.person_id;
+          const personData = persons.map((person) => ({
+            id: person.id,
+            name: person.name || 'Unknown',
+            gender: person.gender || 'U',
+            personPath: person.path || '',
+          }));
 
-          if (screen !== 'Details') {
-            const personData = [
-              {
-                id:imageDetails?.[0]?.person_id,
-                name: name || 'Unknown',
-                gender: gender || 'U',
-                personPath: imageDetails?.[0]?.person_path || '',
-              },
-            ];
-            route.params?.onGoBack?.(personData); // Call the callback with data
-            navigation.goBack();
-
-            // Instead of navigating again, just go back and pass data back using route params
-            // navigation.navigate('Edit', {
-            //   imageId,
-            //   personData,
-            // });
-
-          } else {
-            // Just go back to previous screen (Details screen)
-            navigation.goBack();
-          }
+          route.params?.onGoBack?.(personData);
+          navigation.goBack();
         }
 
-        return true; // prevent default back behavior
+        return true;
       };
 
       BackHandler.addEventListener('hardwareBackPress', onBackPress);
@@ -57,57 +51,50 @@ const PersonInfo = ({ route }) => {
       return () => {
         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
       };
-    }, [name, gender, imageDetails, screen])
+    }, [persons])
   );
 
+  // Handlers to update individual name and gender
+  const updateName = (index, newName) => {
+    const updated = [...persons];
+    updated[index].name = newName;
+    setPersons(updated);
+  };
 
-  useEffect(() => {
-    if (screen === 'Details') {
-      console.log('Details screen is active');
-      const person = imageDetails[0];
-
-      if (person?.person_name) setName(person.person_name);
-      if (person?.gender) setGender(person.gender);
-    }
-    else {
-      console.log('PersonInfo screen is active');
-    }
-  }, [screen]); // Add screen to dependencies if it can change
-
-
-
-
-
+  const updateGender = (index, newGender) => {
+    const updated = [...persons];
+    updated[index].gender = newGender;
+    setPersons(updated);
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Name Person</Text>
 
-      {imageDetails.map((person, index) => (
-        <View key={person.person_id || index} style={styles.card}>
+      {persons.map((person, index) => (
+        <View key={person.id || index} style={styles.card}>
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: baseUrl + person.person_path }}
+              source={{ uri: baseUrl + person.path }}
               style={{ height: 100, width: '100%' }}
             />
           </View>
           <View style={styles.formContainer}>
             <Text style={styles.label}>Enter Name:</Text>
-
             <TextInput
               style={styles.input}
               placeholder="Name"
               placeholderTextColor="#999"
-              value={name}
-              onChangeText={setName}
+              value={person.name}
+              onChangeText={(text) => updateName(index, text)}
             />
+
             <View style={styles.radioGroup}>
               <View style={styles.radioButton}>
-
                 <RadioButton
                   value="Male"
-                  status={gender === 'Male' ? 'checked' : 'unchecked'}
-                  onPress={() => setGender('Male')}
+                  status={person.gender === 'Male' ? 'checked' : 'unchecked'}
+                  onPress={() => updateGender(index, 'Male')}
                   color={colors.dark}
                   uncheckedColor={colors.dark}
                 />
@@ -116,8 +103,8 @@ const PersonInfo = ({ route }) => {
               <View style={styles.radioButton}>
                 <RadioButton
                   value="Female"
-                  status={gender === 'Female' ? 'checked' : 'unchecked'}
-                  onPress={() => setGender('Female')}
+                  status={person.gender === 'Female' ? 'checked' : 'unchecked'}
+                  onPress={() => updateGender(index, 'Female')}
                   color={colors.dark}
                   uncheckedColor={colors.dark}
                 />
@@ -127,11 +114,9 @@ const PersonInfo = ({ route }) => {
           </View>
         </View>
       ))}
-
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {

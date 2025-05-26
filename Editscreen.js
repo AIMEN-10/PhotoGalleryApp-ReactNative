@@ -8,10 +8,12 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AddEventPopup from './AddEventPopup';
 import Location from './Location';
-import { getAllEvents, getImageDetails, editDataForMultipleIds, getPersonData, getAllPersonLinks,getAllPersons,handleUpdateEmbeddings } from './Databasequeries';
+import { getAllEvents, getImageDetails, editDataForMultipleIds, getPersonData, getAllPersonLinks, getAllPersons, handleUpdateEmbeddings } from './Databasequeries';
 import { useFocusEffect } from '@react-navigation/native';
 import MultipleEvents from './MultipleEvents';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import EmbeddingModal from './EmbeddingModal'; // adjust path if needed
+
 
 const Editscreen = (props) => {
 
@@ -39,6 +41,9 @@ const Editscreen = (props) => {
   const [imageIdd, setImageIdd] = useState(null);
   const [received, setReceived] = useState(false);
 
+  const [embmodalVisible, setembModalVisible] = useState(false);
+  const [embeddingResult, setEmbeddingResult] = useState({});
+  const [selectedPerson, setSelectedPerson] = useState(null);
 
   const saveToStorageOrBackend = async (data) => {
     try {
@@ -197,68 +202,71 @@ const Editscreen = (props) => {
       });
 
       const result = await response.json();
-      console.log('Recognition result:', result);
+      // console.log('Recognition result:', result);
 
 
     } catch (error) {
       console.error('Error recognizing person:', error);
     }
-    const persons= await getAllPersons();
-    const links=await getAllPersonLinks();
-    const person1=imagePath.split('/')[2];
+    const persons = await getAllPersons();
+    const links = await getAllPersonLinks();
+    const person1 = imagePath.split('/')[2];
     // console.log('abccc', imagePath);
     const data_url = `${baseUrl}load_embeddings_for_recognition`;
     const payload = {
-    persons,
-    links,
-    person1,
+      persons,
+      links,
+      person1,
+    };
+
+    try {
+      const response = await fetch(data_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      // console.log('Embedding group after recognition:', result);
+      await handleUpdateEmbeddings(name, result);
+
+      // return result.group || result;  // adapt depending on response structure
+    } catch (error) {
+      console.error('Error fetching embedding group for recognition:', error);
+      return [];
+    }
   };
 
-  try {
-    const response = await fetch(data_url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+  const getemb = async (persons, links, person1, db_person) => {
 
-    const result = await response.json();
-    console.log('Embedding group after recognition:', result);
-    await handleUpdateEmbeddings(name,result);
+    const url = `${baseUrl}load_embeddings`;
+    const payload = {
+      persons,
+      links,
+      person1,
+      db_person
+    };
 
-    // return result.group || result;  // adapt depending on response structure
-  } catch (error) {
-    console.error('Error fetching embedding group for recognition:', error);
-    return [];
-  }
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      return result.group || result;  // adapt depending on response structure
+    } catch (error) {
+      console.error('Error fetching embedding group:', error);
+      return [];
+    }
+
+
   };
-
-  const getemb = async ( links, person1, db_person) => {
-  const url = `${baseUrl}load_embeddings`;
-  const payload = {
-    links,
-    person1,
-    db_person
-  };
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await response.json();
-    console.log('Embedding group:', result);
-    return result.group || result;  // adapt depending on response structure
-  } catch (error) {
-    console.error('Error fetching embedding group:', error);
-    return [];
-  }
-};
 
 
   const handleSave = async () => {
@@ -269,7 +277,7 @@ const Editscreen = (props) => {
       for (const person of persons) {
         console.log(person.personPath);
         const path = person.personPath.replace('face_images', './stored-faces');
-        console.log('Recognizing person:', person.name, 'at path:', path);
+        // console.log('Recognizing person:', person.name, 'at path:', path);
         await recognizePerson(person.name, path);
       }
     } else {
@@ -286,7 +294,15 @@ const Editscreen = (props) => {
     clearAllAsyncStorage()
 
   };
-
+  const handleEmbeddingCheck = async (persons, links, person1) => {
+    const result = await getemb(persons, links, person1);
+    if (result && Object.keys(result).length > 0) {
+      console.log('Embedding group:', person1);
+      setSelectedPerson(person1);
+      setEmbeddingResult(result);
+      setembModalVisible(true);
+    }
+  };
 
 
   return (
@@ -317,38 +333,42 @@ const Editscreen = (props) => {
                 onPress={() =>
                   navigation.navigate('PersonInfo', {
                     imageDetails, screen: 'edit',
-                    onGoBack: (personData) => {
-                      saveToStorageOrBackend(personData);
-                      setPersonDataa(personData);
-                      console.log('Returned data:', personData);
+                   onGoBack: (personData) => {
+  saveToStorageOrBackend(personData);
+  setPersonDataa(personData);
+  console.log('Returned data:', personData);
 
-                      const fetchPersons = async () => {
-                        for (const person of personData) {
-                          if (person.name) {
-                            const personDataList = await getPersonData(person.name);
-                             console.log('Person(s) for', person.personPath, ':', personDataList);
-                             const Links=await getAllPersonLinks();
-                            //call api 
-                            for (const p of personDataList) {
-                              if (p.path) {
-                                const fileName = p.path.split('/').pop();
+  const fetchPersons = async () => {
+    const groupedPersons = {};
 
-                                try {
-                                  const names = await getemb(Links, person,p);
-                                  console.log('Embedding names for', fileName, ':', names);
-                                } catch (error) {
-                                  console.error('Error fetching embeddings for', fileName, error);
-                                }
-                              }
-                              }
-                            }
-                          }
-                        };
+    for (const person of personData) {
+      if (person.name && person.name !== "unknown") {
+        if (!groupedPersons[person.name]) {
+          groupedPersons[person.name] = [];
+        }
+        groupedPersons[person.name].push(person);
+      }
+    }
 
-                        fetchPersons();
+    for (const name in groupedPersons) {
+      console.log('Processing name:', name);
 
-                      },
-                    }
+      const personDataList = await getPersonData(name);
+      console.log('Person(s) for', name, ':', personDataList);
+
+      const Links = await getAllPersonLinks();
+
+      for (const person of groupedPersons[name]) {
+        // Now you're handling each person with the same name individually
+        await handleEmbeddingCheck(personDataList, Links, person);
+      }
+    }
+  };
+
+  fetchPersons();
+}
+
+                  }
 
                   )
                 }
@@ -358,7 +378,12 @@ const Editscreen = (props) => {
             </View>
           </View>
         )}
-
+ <EmbeddingModal
+        visible={embmodalVisible}
+        onClose={() => setembModalVisible(false)}
+        embeddingData={embeddingResult}
+        selectedPerson={selectedPerson}
+      />
         <Text style={styles.label}>Event</Text>
 
         <View style={{ flexDirection: 'row' }}>
