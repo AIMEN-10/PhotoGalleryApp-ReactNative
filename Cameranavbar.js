@@ -221,7 +221,7 @@ const pickImagefromgallery = async () => {
 
     console.log('✅ Finished processing selected images.');
   } catch (error) {
-    console.error('❌ Error picking images from gallery:', error);
+    console.log('❌ user cancelled picking images from gallery:', error);
   }
 };
 

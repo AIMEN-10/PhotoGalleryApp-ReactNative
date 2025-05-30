@@ -1610,11 +1610,75 @@ const handleUpdateEmbeddings = async (name, result) => {
   }
 };
 
+const createLink=async (person1_id, person2_id) => {
+  createPersonLinksTable ();
+
+   db.transaction(tx => {
+    tx.executeSql(
+      `SELECT * FROM person_links WHERE person1_id = ? AND person2_id = ?`,
+      [person1_id, person2_id],
+      (txObj, resultSet) => {
+        if (resultSet.rows.length === 0) {
+          // Link does not exist — insert it
+          tx.executeSql(
+            `INSERT INTO person_links (person1_id, person2_id) VALUES (?, ?)`,
+            [person1_id, person2_id],
+            (txObj2, resultSet2) => {
+              console.log('Link inserted successfully with id:', resultSet2.insertId);
+            },
+            (txObj2, error2) => {
+              console.error('Error inserting link:', error2);
+            }
+          );
+        } else {
+          console.log('Link already exists. Skipping insert.');
+        }
+      },
+      (txObj, error) => {
+        console.error('Error checking existing link:', error);
+      }
+    );
+  });
+
+}
+
+const mergepeople=async=(person1_id, person2_emb) => {
+  console.log('person id',person1_id,'person2_emb',person2_emb);
+ return new Promise((resolve, reject) => {
+    db.transaction((txn) => {
+      const person_path = 'face_images/' + person2_emb;
+
+      txn.executeSql(
+        `SELECT * FROM person WHERE path = ?`,
+        [person_path],
+        async (sqlTxn, res) => {
+          if (res.rows.length > 0) {
+            const person2_id = res.rows.item(0).id;
+            console.log('Found person2_id:', person2_id);
+
+            // Call createLink with both IDs
+            await createLink(person1_id, person2_id);
+
+            resolve({ person1_id, person2_id });
+          } else {
+            console.warn('No person found with path:', person_path);
+            resolve(null);
+          }
+        },
+        (sqlTxn, error) => {
+          console.error('Error finding person2:', error.message);
+          reject(error.message);
+        }
+      );
+    });
+  });
+
+}
 export { InsertImageData,getAllImageData,DeletetAllData,insertPerson,linkImageToPerson ,getPeopleWithImages,getPersonTableColumns,
   getImagesForPerson,insertEvent,getAllEvents,getImageDetails,editDataForMultipleIds,checkIfHashExists,getImageData,getLocationById,
   getEventsByImageId, getImagesGroupedByDate,getDataByDate,groupImagesByLocation,getImagesByLocationId,getImagesGroupedByEvent,
   getImagesByEventId,markImageAsDeleted,getAllLocations,getAllPersonLinks,insertPersonLinkIfNotExists,searchImages,
-  getAllPersons,getImagePersonMap,getPersonAndLinkedList,getPersonData,handleUpdateEmbeddings ,getAllImages,
+  getAllPersons,getImagePersonMap,getPersonAndLinkedList,getPersonData,handleUpdateEmbeddings ,getAllImages,mergepeople,
   resetImageTable
 
 };

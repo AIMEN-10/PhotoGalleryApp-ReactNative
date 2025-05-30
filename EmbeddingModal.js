@@ -11,10 +11,11 @@ import {
   PanResponder,
 } from 'react-native';
 
+import { resolveUserDecision } from './ViewModels/waitHelper'; // wherever you defined it
 
-const EmbeddingModal = ({ visible, onClose, embeddingData ,selectedPerson}) => {
+const EmbeddingModal = ({ visible, onClose, embeddingData, selectedPerson }) => {
   const [selectedGroupKeys, setSelectedGroupKeys] = useState([]);
- console.log('emb data',embeddingData);
+  console.log('emb data', embeddingData);
   if (!embeddingData || Object.keys(embeddingData).length === 0) return null;
 
   const handleGroupToggle = (key) => {
@@ -25,7 +26,7 @@ const EmbeddingModal = ({ visible, onClose, embeddingData ,selectedPerson}) => {
     );
   };
 
-  
+
 
   return (
     <Modal
@@ -36,9 +37,11 @@ const EmbeddingModal = ({ visible, onClose, embeddingData ,selectedPerson}) => {
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
+          <Text style={styles.close} onPress={onClose}>Close</Text>
 
           {/* Header */}
           <View style={styles.header}>
+
             <Text style={styles.title}>Same or different person?</Text>
             <Image
               source={{ uri: `${baseUrl}${selectedPerson.personPath}` }}
@@ -51,34 +54,34 @@ const EmbeddingModal = ({ visible, onClose, embeddingData ,selectedPerson}) => {
           {/* Scrollable Groups */}
           <ScrollView contentContainerStyle={styles.scrollArea}>
             {Object.entries(embeddingData).map(([key, values]) => (
-  <View
-    key={key}
-    style={[
-      styles.groupCard,
-      selectedGroupKeys.includes(key) && styles.groupCardSelected,
-    ]}
-  >
-    <ScrollView
-      horizontal
-      nestedScrollEnabled
-      showsHorizontalScrollIndicator={false}
-    >
-      {values.map((v, i) => (
-        <Pressable
-          key={i}
-          onPress={() => handleGroupToggle(key)}
-          android_ripple={{ color: '#FFB20033' }}
-          style={{ marginRight: 10 }}
-        >
-          <Image
-            source={{ uri: `${baseUrl}face_images/${v}` }}
-            style={styles.circleImage}
-          />
-        </Pressable>
-      ))}
-    </ScrollView>
-  </View>
-))}
+              <View
+                key={key}
+                style={[
+                  styles.groupCard,
+                  selectedGroupKeys.includes(key) && styles.groupCardSelected,
+                ]}
+              >
+                <ScrollView
+                  horizontal
+                  nestedScrollEnabled
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {values.map((v, i) => (
+                    <Pressable
+                      key={i}
+                      onPress={() => handleGroupToggle(key)}
+                      android_ripple={{ color: '#FFB20033' }}
+                      style={{ marginRight: 10 }}
+                    >
+                      <Image
+                        source={{ uri: `${baseUrl}face_images/${v}` }}
+                        style={styles.circleImage}
+                      />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            ))}
 
           </ScrollView>
 
@@ -86,13 +89,31 @@ const EmbeddingModal = ({ visible, onClose, embeddingData ,selectedPerson}) => {
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={[styles.button, styles.differentButton]}
-              onPress={onClose}
+              onPress={() => resolveUserDecision('different')}
             >
-              <Text style={styles.buttonTextDark}>Different</Text>
+              <Text style={styles.buttonTextDark}
+              >Different</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.sameButton]}>
+
+            {/* <TouchableOpacity
+              style={[styles.button, styles.sameButton]}
+              onPress={() => resolveUserDecision('same')}
+            >
+              <Text style={styles.buttonTextLight}>Same</Text>
+            </TouchableOpacity> */}
+            <TouchableOpacity
+              style={[styles.button, styles.sameButton]}
+              onPress={() => {
+                if (selectedGroupKeys.length === 0) return; // optional safety check
+                resolveUserDecision('same', {
+                  selectedPerson,
+                  groupKey: selectedGroupKeys, // or all if needed
+                });
+              }}
+            >
               <Text style={styles.buttonTextLight}>Same</Text>
             </TouchableOpacity>
+
           </View>
 
         </View>
@@ -181,6 +202,13 @@ const styles = StyleSheet.create({
   buttonTextDark: {
     color: '#333',
     fontWeight: '600',
+  },
+  close: {
+    color: '#FFB200',
+    fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'right',
+    marginRight: 10,
   },
 });
 

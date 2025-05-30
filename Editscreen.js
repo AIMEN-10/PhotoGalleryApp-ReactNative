@@ -8,11 +8,17 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AddEventPopup from './AddEventPopup';
 import Location from './Location';
-import { getAllEvents, getImageDetails, editDataForMultipleIds, getPersonData, getAllPersonLinks, getAllPersons, handleUpdateEmbeddings } from './Databasequeries';
+import { getAllEvents, getImageDetails, editDataForMultipleIds, getPersonData, getAllPersonLinks, getAllPersons, handleUpdateEmbeddings, mergepeople } from './Databasequeries';
 import { useFocusEffect } from '@react-navigation/native';
 import MultipleEvents from './MultipleEvents';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import EmbeddingModal from './EmbeddingModal'; // adjust path if needed
+
+import {
+  waitForUserDecision,
+  resolveUserDecision,
+  configureModalTrigger
+} from './ViewModels/waitHelper'; // Adjust the path as needed
 
 
 const Editscreen = (props) => {
@@ -44,6 +50,8 @@ const Editscreen = (props) => {
   const [embmodalVisible, setembModalVisible] = useState(false);
   const [embeddingResult, setEmbeddingResult] = useState({});
   const [selectedPerson, setSelectedPerson] = useState(null);
+
+  const [mergeData, setMergeData] = useState(null);
 
   const saveToStorageOrBackend = async (data) => {
     try {
@@ -229,7 +237,7 @@ const Editscreen = (props) => {
       });
 
       const result = await response.json();
-      // console.log('Embedding group after recognition:', result);
+      console.log('Embedding group for recognition:', result);
       await handleUpdateEmbeddings(name, result);
 
       // return result.group || result;  // adapt depending on response structure
@@ -239,7 +247,7 @@ const Editscreen = (props) => {
     }
   };
 
-  const getemb = async (persons, links, person1,personrecords) => {
+  const getemb = async (persons, links, person1, personrecords) => {
 
     const url = `${baseUrl}load_embeddings`;
     const payload = {
@@ -259,6 +267,7 @@ const Editscreen = (props) => {
       });
 
       const result = await response.json();
+      console.log(result);
       return result.group || result;  // adapt depending on response structure
     } catch (error) {
       console.error('Error fetching embedding group:', error);
@@ -291,18 +300,57 @@ const Editscreen = (props) => {
       latestValue,
     });
     var result = editDataForMultipleIds(imageId, latestValue, selectedEvents, eventDate, location);
+    // var res= await mergepeople(selectedPerson.id, groupKey);
+      if (mergeData && mergeData.selectedPerson && Array.isArray(mergeData.groupKeys)) {
+
+    const { selectedPerson, groupKeys } = mergeData;
+
+  // Call merge for each key in the list
+  for (const groupKey of groupKeys) {
+    const res = await mergepeople(selectedPerson.id, groupKey);
+    console.log("Merge result for", groupKey, res);
+  }
+}else{
+  console.log("No merge data available or invalid format");
+}
     clearAllAsyncStorage()
 
   };
-  const handleEmbeddingCheck = async (persons, links, person1,personrecords) => {
-    const result = await getemb(persons, links, person1,personrecords);
+  // const handleEmbeddingCheck = async (persons, links, person1, personrecords) => {
+  //   const result = await getemb(persons, links, person1, personrecords);
+  //   if (result && Object.keys(result).length > 0) {
+  //     console.log('Embedding group:', person1);
+  //     setSelectedPerson(person1);
+  //     setEmbeddingResult(result);
+  //     setembModalVisible(true);
+  //   }
+  // };
+  const handleEmbeddingCheck = async (persons, links, person1, personrecords) => {
+    const result = await getemb(persons, links, person1, personrecords);
     if (result && Object.keys(result).length > 0) {
       console.log('Embedding group:', person1);
       setSelectedPerson(person1);
       setEmbeddingResult(result);
+
+      // Show modal
       setembModalVisible(true);
+
+      // Wait for user response
+      try {
+        const decision = await waitForUserDecision(); // waits here properly
+        return decision;
+      } catch (err) {
+        console.error("User decision failed:", err);
+        return null;
+      }
+    } else {
+      return null;
     }
   };
+
+  useEffect(() => {
+    configureModalTrigger(setembModalVisible);
+  }, []);
 
 
   return (
@@ -354,15 +402,34 @@ const Editscreen = (props) => {
                           console.log('Processing name:', name);
 
                           const personDataList = await getPersonData(name);
-                          const personrecords=await getAllPersons();
+                          const personrecords = await getAllPersons();
                           console.log('Person(s) for', name, ':', personDataList);
 
                           const Links = await getAllPersonLinks();
 
                           for (const person of groupedPersons[name]) {
-                            // Now you're handling each person with the same name individually
-                            await handleEmbeddingCheck(personDataList, Links, person,personrecords);
+                            const decision = await handleEmbeddingCheck(personDataList, Links, person, personrecords);
+
+                            if (decision) {
+                              console.log("User selected:", decision);
+                              if (decision.decision === 'same') {
+                                const { selectedPerson, groupKey } = decision.payload;
+                                console.log("Same selected!");
+                                console.log("Selected Person:", selectedPerson);
+                                console.log("Group Key:", groupKey);
+                                setMergeData({ selectedPerson, groupKey });
+                                //  var res= await mergepeople(selectedPerson.id, groupKey);
+
+                                // Your logic using selectedPerson and groupKey here
+                              } else if (decision.decision === 'different') {
+                                console.log("Different selected!");
+                                // No payload expected here, but you can still log decision
+                              }
+                            } else {
+                              console.log("No modal shown or skipped");
+                            }
                           }
+
                         }
                       };
 
