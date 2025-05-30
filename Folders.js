@@ -15,6 +15,9 @@ import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
 import FoldersData from './ViewModels/FoldersData';
 import { getAllPersonLinks, insertPersonLinkIfNotExists, getAllPersons,handleUpdateEmbeddings } from './Databasequeries';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -106,13 +109,25 @@ const Folders = ({ route }) => {
   const [layouts, setLayouts] = useState({}); // store layout info
   const navigation = useNavigation();
 
-  useEffect(() => {
+  // useEffect(() => {
+  //   const loadData = async () => {
+  //     const folders = await FoldersData({ data });
+  //     setResult(folders || []);
+  //   };
+  //   loadData();
+  // }, [data]);
+
+  useFocusEffect(
+  useCallback(() => {
     const loadData = async () => {
       const folders = await FoldersData({ data });
       setResult(folders || []);
     };
+
     loadData();
-  }, [data]);
+  }, [data])
+);
+
 
   const registerLayout = (id, event) => {
     event.target.measure((fx, fy, width, height, px, py) => {

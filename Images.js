@@ -11,6 +11,7 @@ import Filteredimages from './ViewModels/Filteredimages';
 import FastImage from 'react-native-fast-image';
 import ReactNativeModal from 'react-native-modal';  
 import Editscreen from './Editscreen';  
+import { useFocusEffect } from '@react-navigation/native';
 
 const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) => {
   const isSelected = selectedItems.includes(item.id);
@@ -77,23 +78,40 @@ const Images = ({ route }) => {
     selectedItemsRef.current = new Set(selectedItems);
   }, [selectedItems]);
 
-  useEffect(() => {
-    const loadData = async () => {
+//   useEffect(() => {
+//     const loadData = async () => {
+//       if (!data) return;
+//       if (Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
+//     setPhotos(data);
+
+//   console.log('Data is an array of objects');
+// } else {
+//   console.log('Data is not an array of objects');
+
+//       const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
+//       // console.log("here:",result);
+//       setPhotos(result);
+//     };
+//   }
+//     loadData();
+//   }, [data, fetchedPhotosFromHook]);
+
+useFocusEffect(
+  useCallback(() => {
+    const reloadData = async () => {
       if (!data) return;
+
       if (Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
-    setPhotos(data);
-
-  console.log('Data is an array of objects');
-} else {
-  console.log('Data is not an array of objects');
-
-      const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
-      // console.log("here:",result);
-      setPhotos(result);
+        setPhotos(data);
+      } else {
+        const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
+        setPhotos(result);
+      }
     };
-  }
-    loadData();
-  }, [data, fetchedPhotosFromHook]);
+
+    reloadData();
+  }, [data, fetchedPhotosFromHook])
+);
 
   const handleImagePress = useCallback(
     // (item) => navigation.navigate('ViewPhoto', { item, data }),
