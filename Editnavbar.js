@@ -3,13 +3,14 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Alert,
   InteractionManager,
   Animated,
   Dimensions,
   TouchableWithoutFeedback,
   ScrollView,
 } from 'react-native';
+import { Alert } from 'react-native';
+
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import colors from './theme/colors';
@@ -20,7 +21,7 @@ import { markImageAsDeleted } from './Databasequeries';
 const Tab = createBottomTabNavigator();
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-const Editnavbar = ({ imageId , onModalToggle }) => {
+const Editnavbar = ({ imageId, onModalToggle, onDelete }) => {
   const StaticScreen = () => (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <Text style={{ fontSize: 20 }}>Same View Remains</Text>
@@ -38,20 +39,27 @@ const Editnavbar = ({ imageId , onModalToggle }) => {
       { cancelable: true }
     );
   };
-const deleteImage=async () => {
+
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const deleteImage = async () => {
+  if (isDeleting) return; // Prevent multiple calls
+  setIsDeleting(true);
+
   try {
     const success = await markImageAsDeleted(imageId);
     if (success) {
       console.log(`Image ${imageId} marked as deleted`);
-      // Optionally refresh UI or show a toast
+      onDelete?.();
     } else {
       console.log("No image found to delete.");
     }
   } catch (error) {
-    console.error("Error deleting image:", error);
+    console.log("Error deleting image:", error);
+  } finally {
+    setIsDeleting(false);
   }
-
-}
+};
   const showDeletePopup = () => {
     Alert.alert(
       'Delete Options',
@@ -68,13 +76,13 @@ const deleteImage=async () => {
   const [activeTab, setActiveTab] = useState(null);
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
-   const openModal = () => {
+  const openModal = () => {
     Animated.timing(translateY, {
       toValue: 0,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      onModalToggle?.(true);  
+      onModalToggle?.(true);
     });
   };
 
@@ -85,8 +93,8 @@ const deleteImage=async () => {
       useNativeDriver: true,
     }).start(() => {
       setModalData(null);
-      onModalToggle?.(false);  
-       setActiveTab(null);
+      onModalToggle?.(false);
+      setActiveTab(null);
     });
   };
 
@@ -119,7 +127,7 @@ const deleteImage=async () => {
           >
             <Animated.View
               style={{
-                
+
                 transform: [{ translateY }],
                 backgroundColor: colors.secondary,
                 maxHeight: SCREEN_HEIGHT * 0.7,
@@ -213,15 +221,16 @@ const deleteImage=async () => {
                     setActiveTab(name);
 
                     if (isDelete) {
-                      showDeletePopup();
+                      // showDeletePopup();
+                      showConfirmationAlert('Delete Image');
                     } else if (name === 'Info') {
                       setModalData({ type: 'info', content: 'Info-related content here.' });
                     } else if (name === 'Edit') {
-setModalData({ type: 'edit', content: Editscreen, props: { imageId: imageId } });
-setTimeout(() => openModal(), 0);  // Ensure animation runs after state is set
+                      setModalData({ type: 'edit', content: Editscreen, props: { imageId: imageId } });
+                      setTimeout(() => openModal(), 0);  // Ensure animation runs after state is set
                     } else if (name === 'Details') {
                       setModalData({ type: 'details', content: Detailsscreen, props: { imageId: imageId } });
-setTimeout(() => openModal(), 0); 
+                      setTimeout(() => openModal(), 0);
                       // setModalData({ type: 'details', content: Detailsscreen, props: { imageId: imageId }});
                     } else {
                       onPress?.();

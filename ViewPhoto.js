@@ -1,20 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { View, Image, StyleSheet, SafeAreaView, Text, Dimensions, TouchableWithoutFeedback, BackHandler, ScrollView } from 'react-native';
+import React, { useState, useEffect ,useRef} from 'react';
+import { View, Image, StyleSheet, SafeAreaView, Text, Dimensions, TouchableWithoutFeedback, BackHandler, ScrollView ,Alert} from 'react-native';
 import Editnavbar from './Editnavbar';
 import colors from './theme/colors';
 import { getImageDetails,getPersonAndLinkedList } from './Databasequeries';
 import { useNavigation } from '@react-navigation/native';
+import { PanResponder } from 'react-native';
 
 
 const { width } = Dimensions.get('window');
 
 const ViewPhoto = ({ route }) => {
-  const { item, data } = route.params;
+
+  const { allImages, currentIndex ,data} = route.params;
+  // console.log("1",allImages,"2",currentIndex,"3",data);
+  const initialIndex = allImages.findIndex(img => img.id === currentIndex.id);
+const [currentImageIndex, setCurrentImageIndex] = useState(initialIndex);
+const [item, setItem] = useState(allImages[initialIndex]);
+
+  // const { item, data } = route.params;
   const parts = data.split(';');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [persons, setpersons] = useState([]);
   const [showFaces, setShowFaces] = useState(false);
   const navigation = useNavigation();
+
+
+ const moveToNextImage = () => {
+  const nextIndex = currentImageIndex + 1;
+
+  if (nextIndex < allImages.length) {
+    setCurrentImageIndex(nextIndex);
+    setItem(allImages[nextIndex]);
+    setpersons([]);
+    setShowFaces(false);
+  } else {
+    // Reached end of list — show message and exit gracefully
+    Alert.alert("End", "No more images available.");
+    // setItem(null); // Clear image
+    navigation.goBack(); // Or navigate somewhere else
+  }
+};
+
+if (!item) {
+  // Optional: show message before navigating back
+  useEffect(() => {
+    Alert.alert("Deleted", "No more images available.");
+    navigation.goBack();
+  }, []);
+  
+  return null;
+}
 
 
   const handleImageTap = async () => {
@@ -73,6 +108,43 @@ const ViewPhoto = ({ route }) => {
     return () => backHandler.remove();
   }, [isModalOpen]);
 
+
+ const currentIndexRef = useRef(currentImageIndex);
+
+useEffect(() => {
+  currentIndexRef.current = currentImageIndex;
+}, [currentImageIndex]);
+
+const panResponder = useRef(
+  PanResponder.create({
+    onStartShouldSetPanResponder: (evt, gestureState) => false, // Let taps go through at start
+    onMoveShouldSetPanResponder: (evt, gestureState) => {
+      return Math.abs(gestureState.dx) > 20;  // Start pan responder if horizontal swipe detected
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      if (gestureState.dx > 50) {
+        if (currentIndexRef.current > 0) {
+          const newIndex = currentIndexRef.current - 1;
+          setCurrentImageIndex(newIndex);
+          setItem(allImages[newIndex]);
+          setpersons([]);
+          setShowFaces(false);
+        }
+      } else if (gestureState.dx < -50) {
+        if (currentIndexRef.current < allImages.length - 1) {
+          const newIndex = currentIndexRef.current + 1;
+          setCurrentImageIndex(newIndex);
+          setItem(allImages[newIndex]);
+          setpersons([]);
+          setShowFaces(false);
+        }
+      }
+    },
+  })
+).current;
+
+
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.allControlsContainer}>
@@ -80,39 +152,43 @@ const ViewPhoto = ({ route }) => {
       </View>
 
 
-      <TouchableWithoutFeedback onPress={handleImageTap}>
-        <View style={[styles.imageWrapper, { flex: isModalOpen ? 0.5 : 1 }]}>
-          <Image
-            source={{ uri: item.path }}
-            style={styles.image}
-          />
+      <View style={[styles.imageWrapper, { flex: isModalOpen ? 0.5 : 1 }]} {...panResponder.panHandlers}>
 
-          {showFaces && persons.length > 0 && (
-            <View style={styles.facesOverlay}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {persons.map((person, index) => (
-                  <TouchableWithoutFeedback
-                    key={person.person_id || index} 
-                    onPress={() => showtrainingimages(person.person_id)} 
-                  >
-                    <Image
-                      source={{ uri: baseUrl + person.person_path }}
-                      style={styles.faceImage}
-                    />
-                  </TouchableWithoutFeedback>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+  <TouchableWithoutFeedback onPress={handleImageTap}>
+    {item && (
+    <Image
+      source={{ uri: item.path }}
+      style={styles.image}
+    />
+    )}
+  </TouchableWithoutFeedback>
 
-        </View>
-      </TouchableWithoutFeedback>
+  {showFaces && persons.length > 0 && (
+    <View style={styles.facesOverlay}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {persons.map((person, index) => (
+          <TouchableWithoutFeedback
+            key={person.person_id || index} 
+            onPress={() => showtrainingimages(person.person_id)} 
+          >
+            <Image
+              source={{ uri: baseUrl + person.person_path }}
+              style={styles.faceImage}
+            />
+          </TouchableWithoutFeedback>
+        ))}
+      </ScrollView>
+    </View>
+  )}
+
+</View>
+
 
 
 
 
       <View style={{ flex: isModalOpen ? 0.5 : 0 }}>
-        <Editnavbar imageId={item.id} onModalToggle={setIsModalOpen} />
+        <Editnavbar imageId={item.id} onModalToggle={setIsModalOpen} onDelete={moveToNextImage}/>
       </View>
 
 

@@ -96,8 +96,18 @@ const Images = ({ route }) => {
   }, [data, fetchedPhotosFromHook]);
 
   const handleImagePress = useCallback(
-    (item) => navigation.navigate('ViewPhoto', { item, data }),
-    [navigation, data]
+    // (item) => navigation.navigate('ViewPhoto', { item, data }),
+    // [navigation, data]
+
+   (item)=> navigation.navigate('ViewPhoto', {
+
+
+
+  allImages: photos,  // array of image objects
+  currentIndex: item,
+  data:data,
+})
+
   );
 
   const handleLongPress = useCallback(() => {
