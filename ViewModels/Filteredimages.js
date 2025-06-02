@@ -68,7 +68,7 @@ const Filteredimages = async (data) => {
               return simplifiedImages;
 
             } catch (error) {
-              console.error('Failed to send data:', error);
+              console.log('Failed to send data:', error);
             }
           };
           const result = await sendPersonGroupData();

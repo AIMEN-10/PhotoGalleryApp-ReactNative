@@ -18,7 +18,14 @@ const [currentImageIndex, setCurrentImageIndex] = useState(initialIndex);
 const [item, setItem] = useState(allImages[initialIndex]);
 
   // const { item, data } = route.params;
-  const parts = data.split(';');
+  let parts;
+  try {
+   parts = data.split(';');
+  } catch (error) {
+    parts=["","","Search Results"];
+  }
+  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [persons, setpersons] = useState([]);
   const [showFaces, setShowFaces] = useState(false);
@@ -148,7 +155,7 @@ const panResponder = useRef(
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.allControlsContainer}>
-        <Text style={styles.text}>{parts[2] || 'Unknown'}</Text>
+        <Text style={styles.text}>{parts?.[2] || 'Unknown'}</Text>
       </View>
 
 

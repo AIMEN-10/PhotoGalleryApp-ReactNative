@@ -18,7 +18,18 @@ const ImageData = () => {
     return `${year}-${month}-${day}`;
   };
 
-
+ const loadImages = async () => {
+    return new Promise((resolve) => {
+      getAllImages((data) => {
+        const paths = data.map(item => ({
+          id: item.id,
+          path: item.path
+        }));
+        setPhotos(paths);
+        resolve(paths); // <- return the updated list
+      });
+    });
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -28,15 +39,15 @@ const ImageData = () => {
         //await getAllPhotos();
 
 
-        getAllImages((data) => {
-          const paths = data.map(item => ({
-            id: item.id,    // Accessing the 'id' from the item
-            path: item.path // Accessing the 'path' from the item
-          }));
+        // getAllImages((data) => {
+        //   const paths = data.map(item => ({
+        //     id: item.id,    // Accessing the 'id' from the item
+        //     path: item.path // Accessing the 'path' from the item
+        //   }));
 
-          setPhotos(paths); // Set the photos state with the array of objects
-        });
-
+        //   setPhotos(paths); // Set the photos state with the array of objects
+        // });
+ await loadImages();
 
 
 

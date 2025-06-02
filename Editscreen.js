@@ -298,11 +298,13 @@ const Editscreen = (props) => {
       location,
       selectedEvents,
       latestValue,
+      currentDateFormatted
     });
-    var result = editDataForMultipleIds(imageId, latestValue, selectedEvents, eventDate, location);
+    var result = editDataForMultipleIds(imageId, latestValue, selectedEvents, eventDate, location,currentDateFormatted);
     // var res= await mergepeople(selectedPerson.id, groupKey);
+    console.log(mergeData)
       if (mergeData && mergeData.selectedPerson && Array.isArray(mergeData.groupKeys)) {
-
+console.log("heh")
     const { selectedPerson, groupKeys } = mergeData;
 
   // Call merge for each key in the list

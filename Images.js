@@ -105,7 +105,12 @@ useFocusEffect(
         setPhotos(data);
       } else {
         const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
-        setPhotos(result);
+         if (Array.isArray(result)) {
+          setPhotos(result);
+        } else {
+          console.log('Unexpected result from Filteredimages or ImageData:', result);
+          setPhotos([]); // fallback to prevent undefined
+        }
       }
     };
 
@@ -173,7 +178,8 @@ useFocusEffect(
         </View>
 
         <View style={styles.gridContainer}>
-          {photos.length > 0 ? (
+          
+          {photos.length > 0 ?  (
             <FlashList
               data={photos}
               extraData={{ selectMode, selectedItems }} 
