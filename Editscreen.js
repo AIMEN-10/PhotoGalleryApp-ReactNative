@@ -322,7 +322,13 @@ const Editscreen = (props) => {
       console.log("No merge data available or invalid format");
     }
     setMergeData([]); // Clear merge data after processing
-    clearAllAsyncStorage()
+    clearAllAsyncStorage();
+    Alert.alert('Success', 'Data saved successfully!', [
+  {
+    text: 'OK',
+  }
+]);
+
 
   };
   // const handleEmbeddingCheck = async (persons, links, person1, personrecords) => {
