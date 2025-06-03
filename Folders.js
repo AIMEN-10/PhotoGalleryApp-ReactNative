@@ -14,7 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
 import FoldersData from './ViewModels/FoldersData';
-import { getAllPersonLinks, insertPersonLinkIfNotExists, getAllPersons,handleUpdateEmbeddings } from './Databasequeries';
+import { getAllPersonLinks, insertPersonLinkIfNotExists, getAllPersons, handleUpdateEmbeddings } from './Databasequeries';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 
@@ -116,17 +116,17 @@ const Folders = ({ route }) => {
   //   };
   //   loadData();
   // }, [data]);
-
+  const loadData = async () => {
+    const folders = await FoldersData({ data });
+    setResult(folders || []);
+  };
   useFocusEffect(
-  useCallback(() => {
-    const loadData = async () => {
-      const folders = await FoldersData({ data });
-      setResult(folders || []);
-    };
+    useCallback(() => {
 
-    loadData();
-  }, [data])
-);
+
+      loadData();
+    }, [data])
+  );
 
 
   const registerLayout = (id, event) => {
@@ -143,7 +143,7 @@ const Folders = ({ route }) => {
   const handleDrop = (draggedId, dropX, dropY) => {
     for (const id in layouts) {
       const numericId = Number(id);  // Convert string key to number
-    if (numericId === Number(draggedId)) continue;
+      if (numericId === Number(draggedId)) continue;
       const { pageX, pageY, width, height } = layouts[id];
       if (
         dropX >= pageX &&
@@ -174,15 +174,15 @@ const Folders = ({ route }) => {
               text: 'OK',
               onPress: async () => {
                 try {
-                  const data = await insertPersonLinkIfNotExists(draggedId,  numericId);
-                  
+                  const data = await insertPersonLinkIfNotExists(draggedId, numericId);
+
                   const persons = await getAllPersons();
                   const links = await getAllPersonLinks();
                   const draggedPerson = result.find(p => p.id === draggedId);
                   const person1 = (draggedPerson?.imagePath ?? '').split('/').pop();
                   const name = draggedPerson?.name ?? '';
 
-                  console.log('pathh',person1);
+                  console.log('pathh', person1);
                   const data_url = `${baseUrl}load_embeddings_for_recognition`;
                   const payload = {
                     persons,
@@ -202,7 +202,8 @@ const Folders = ({ route }) => {
                     const result = await response.json();
                     console.log('Embedding group after recognition:', result);
                     await handleUpdateEmbeddings(name, result);
-
+                    //refresh page here 
+                    await loadData();
                     // return result.group || result;  // adapt depending on response structure
                   } catch (error) {
                     console.error('Error fetching embedding group for recognition:', error);
