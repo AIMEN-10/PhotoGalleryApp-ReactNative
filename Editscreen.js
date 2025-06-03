@@ -51,7 +51,7 @@ const Editscreen = (props) => {
   const [embeddingResult, setEmbeddingResult] = useState({});
   const [selectedPerson, setSelectedPerson] = useState(null);
 
-  const [mergeData, setMergeData] = useState(null);
+  const [mergeData, setMergeData] = useState([]);
 
   const saveToStorageOrBackend = async (data) => {
     try {
@@ -300,21 +300,28 @@ const Editscreen = (props) => {
       latestValue,
       currentDateFormatted
     });
-    var result = editDataForMultipleIds(imageId, latestValue, selectedEvents, eventDate, location,currentDateFormatted);
+    var result = editDataForMultipleIds(imageId, latestValue, selectedEvents, eventDate, location, currentDateFormatted);
     // var res= await mergepeople(selectedPerson.id, groupKey);
     console.log(mergeData)
-      if (mergeData && mergeData.selectedPerson && Array.isArray(mergeData.groupKeys)) {
-console.log("heh")
-    const { selectedPerson, groupKeys } = mergeData;
 
-  // Call merge for each key in the list
-  for (const groupKey of groupKeys) {
-    const res = await mergepeople(selectedPerson.id, groupKey);
-    console.log("Merge result for", groupKey, res);
-  }
-}else{
-  console.log("No merge data available or invalid format");
-}
+    if (Array.isArray(mergeData) && mergeData.length > 0) {
+      for (const entry of mergeData) {
+        const { selectedPerson, groupKey } = entry;
+
+        if (selectedPerson && Array.isArray(groupKey)) {
+          for (const key of groupKey) {
+             const res = await mergepeople(selectedPerson.id, key);
+            // console.log("Merge result for", key, res);
+            console.log("here",{key, selectedPersonId: selectedPerson.id})
+          }
+        } else {
+          console.log("Invalid entry", entry);
+        }
+      }
+    } else {
+      console.log("No merge data available or invalid format");
+    }
+    setMergeData([]); // Clear merge data after processing
     clearAllAsyncStorage()
 
   };
@@ -419,7 +426,11 @@ console.log("heh")
                                 console.log("Same selected!");
                                 console.log("Selected Person:", selectedPerson);
                                 console.log("Group Key:", groupKey);
-                                setMergeData({ selectedPerson, groupKey });
+                                setMergeData(prev => [
+                                  ...prev,
+                                  { selectedPerson, groupKey }
+                                ]);
+
                                 //  var res= await mergepeople(selectedPerson.id, groupKey);
 
                                 // Your logic using selectedPerson and groupKey here
