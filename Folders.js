@@ -14,6 +14,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 import {
   PanGestureHandler,
+  TouchableWithoutFeedback
 } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -38,7 +39,6 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const [isDragging, setIsDragging] = useState(false);
-  const dragStartTime = useRef(0);
   const viewRef = useRef(null);
 
   const gestureHandler = useAnimatedGestureHandler({
@@ -46,7 +46,6 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
       ctx.startX = translateX.value;
       ctx.startY = translateY.value;
       runOnJS(setIsDragging)(true);
-      dragStartTime.current = Date.now();
     },
     onActive: (event, ctx) => {
       translateX.value = ctx.startX + event.translationX;
@@ -54,18 +53,7 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
     },
     onEnd: (event) => {
       runOnJS(setIsDragging)(false);
-      const timeHeld = Date.now() - dragStartTime.current;
-
-      if (
-        Math.abs(event.translationX) < 5 &&
-        Math.abs(event.translationY) < 5 &&
-        timeHeld < 200
-      ) {
-        runOnJS(onPress)(item.id, item.name);
-      } else {
-        runOnJS(onDrop)(item.id, event.absoluteX, event.absoluteY);
-      }
-
+      runOnJS(onDrop)(item.id, event.absoluteX, event.absoluteY);
       translateX.value = withSpring(0);
       translateY.value = withSpring(0);
     },
@@ -79,8 +67,13 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
     zIndex: isDragging ? 9999 : 0,
     elevation: isDragging ? 20 : 0,
     borderColor: isDragging ? 'orange' : colors.primary,
-    backgroundColor: '#fff',
   }));
+
+  const handleLayout = () => {
+    viewRef.current?.measure?.((x, y, width, height, pageX, pageY) => {
+      registerLayout(item.id, { pageX, pageY, width, height });
+    });
+  };
 
   const content = (
     <>
@@ -98,12 +91,6 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
       <Text style={styles.imageName}>{item.name}</Text>
     </>
   );
-
-  const handleLayout = () => {
-    viewRef.current?.measure?.((x, y, width, height, pageX, pageY) => {
-      registerLayout(item.id, { pageX, pageY, width, height });
-    });
-  };
 
   if (!dataIsPerson) {
     return (
@@ -126,7 +113,11 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
         onLayout={handleLayout}
         style={[styles.folderborder, animatedStyle]}
       >
-        {content}
+        <TouchableWithoutFeedback
+          onPress={() => onPress(item.id, item.name)}
+        >
+          {content}
+        </TouchableWithoutFeedback>
       </Animated.View>
     </PanGestureHandler>
   );
