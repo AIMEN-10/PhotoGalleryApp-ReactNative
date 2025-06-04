@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable ,BackHandler} from 'react-native';
 import { Checkbox } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
@@ -12,6 +12,7 @@ import FastImage from 'react-native-fast-image';
 import ReactNativeModal from 'react-native-modal';  
 import Editscreen from './Editscreen';  
 import { useFocusEffect } from '@react-navigation/native';
+
 
 const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) => {
   const isSelected = selectedItems.includes(item.id);
@@ -117,6 +118,29 @@ useFocusEffect(
     reloadData();
   }, [data, fetchedPhotosFromHook])
 );
+
+
+useFocusEffect(
+  useCallback(() => {
+    const onBackPress = () => {
+      if (selectModeRef.current) {
+        // Exit selection mode instead of navigating back
+        setSelectMode(false);
+        setSelectedItems([]);
+        return true; // prevent default behavior
+      }
+      return false; // allow default back behavior
+    };
+
+    BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+    return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+  }, [])
+);
+
+useEffect(() => {
+  selectModeRef.current = selectMode;
+}, [selectMode]);
 
   const handleImagePress = useCallback(
     // (item) => navigation.navigate('ViewPhoto', { item, data }),

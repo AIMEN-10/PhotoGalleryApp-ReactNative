@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   ScrollView,
@@ -6,61 +6,81 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  PanResponder,
-  Animated,
   Alert,
   Dimensions,
+  findNodeHandle,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+
+import {
+  PanGestureHandler,
+} from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedGestureHandler,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
+
 import colors from './theme/colors';
 import FoldersData from './ViewModels/FoldersData';
-import { getAllPersonLinks, insertPersonLinkIfNotExists, getAllPersons, handleUpdateEmbeddings } from './Databasequeries';
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
-
+import {
+  getAllPersonLinks,
+  insertPersonLinkIfNotExists,
+  getAllPersons,
+  handleUpdateEmbeddings,
+} from './Databasequeries';
 
 const windowWidth = Dimensions.get('window').width;
 
 const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }) => {
-  const pan = useRef(new Animated.ValueXY()).current;
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartTime = useRef(0);
+  const viewRef = useRef(null);
 
-  const panResponder = dataIsPerson
-    ? PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        setIsDragging(true);
-        dragStartTime.current = Date.now();
-        pan.setOffset({ x: pan.x._value, y: pan.y._value });
-        pan.setValue({ x: 0, y: 0 });
-      },
-      onPanResponderMove: Animated.event(
-        [null, { dx: pan.x, dy: pan.y }],
-        { useNativeDriver: false }
-      ),
-      onPanResponderRelease: (e, gesture) => {
-        setIsDragging(false);
-        pan.flattenOffset();
-        const timeHeld = Date.now() - dragStartTime.current;
+  const gestureHandler = useAnimatedGestureHandler({
+    onStart: (_, ctx) => {
+      ctx.startX = translateX.value;
+      ctx.startY = translateY.value;
+      runOnJS(setIsDragging)(true);
+      dragStartTime.current = Date.now();
+    },
+    onActive: (event, ctx) => {
+      translateX.value = ctx.startX + event.translationX;
+      translateY.value = ctx.startY + event.translationY;
+    },
+    onEnd: (event) => {
+      runOnJS(setIsDragging)(false);
+      const timeHeld = Date.now() - dragStartTime.current;
 
-        // If it's a quick tap, treat as a press
-        if (Math.abs(gesture.dx) < 5 && Math.abs(gesture.dy) < 5 && timeHeld < 200) {
-          onPress(item.id, item.name);
-        } else {
-          onDrop(item.id, gesture.moveX, gesture.moveY);
-        }
+      if (
+        Math.abs(event.translationX) < 5 &&
+        Math.abs(event.translationY) < 5 &&
+        timeHeld < 200
+      ) {
+        runOnJS(onPress)(item.id, item.name);
+      } else {
+        runOnJS(onDrop)(item.id, event.absoluteX, event.absoluteY);
+      }
 
-        pan.setValue({ x: 0, y: 0 });
-      },
-    })
-    : null;
+      translateX.value = withSpring(0);
+      translateY.value = withSpring(0);
+    },
+  });
 
-  const folderStyles = [
-    styles.folderborder,
-    { borderColor: isDragging ? 'orange' : colors.primary, backgroundColor: isDragging ? '#fff' : '#fff' },
-    isDragging && { zIndex: 9999, elevation: 20 },
-  ];
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+    ],
+    zIndex: isDragging ? 9999 : 0,
+    elevation: isDragging ? 20 : 0,
+    borderColor: isDragging ? 'orange' : colors.primary,
+    backgroundColor: '#fff',
+  }));
 
   const content = (
     <>
@@ -68,8 +88,8 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
         source={{
           uri:
             item.imagePath.startsWith('file://') ||
-              item.imagePath.startsWith('content://') ||
-              item.imagePath.startsWith('http')
+            item.imagePath.startsWith('content://') ||
+            item.imagePath.startsWith('http')
               ? item.imagePath
               : baseUrl + item.imagePath,
         }}
@@ -79,13 +99,20 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
     </>
   );
 
+  const handleLayout = () => {
+    viewRef.current?.measure?.((x, y, width, height, pageX, pageY) => {
+      registerLayout(item.id, { pageX, pageY, width, height });
+    });
+  };
+
   if (!dataIsPerson) {
     return (
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => onPress(item.id, item.name)}
-        style={[...folderStyles]}
-        onLayout={(e) => registerLayout(item.id, e)}
+        style={[styles.folderborder]}
+        onLayout={handleLayout}
+        ref={viewRef}
       >
         {content}
       </TouchableOpacity>
@@ -93,56 +120,47 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress }
   }
 
   return (
-    <Animated.View
-      {...panResponder.panHandlers}
-      style={[pan.getLayout(), ...folderStyles]}
-      onLayout={(e) => registerLayout(item.id, e)}
-    >
-      {content}
-    </Animated.View>
+    <PanGestureHandler onGestureEvent={gestureHandler}>
+      <Animated.View
+        ref={viewRef}
+        onLayout={handleLayout}
+        style={[styles.folderborder, animatedStyle]}
+      >
+        {content}
+      </Animated.View>
+    </PanGestureHandler>
   );
 };
 
 const Folders = ({ route }) => {
   const { data } = route.params || {};
   const [result, setResult] = useState([]);
-  const [layouts, setLayouts] = useState({}); // store layout info
+  const [layouts, setLayouts] = useState({});
   const navigation = useNavigation();
 
-  // useEffect(() => {
-  //   const loadData = async () => {
-  //     const folders = await FoldersData({ data });
-  //     setResult(folders || []);
-  //   };
-  //   loadData();
-  // }, [data]);
   const loadData = async () => {
     const folders = await FoldersData({ data });
     setResult(folders || []);
   };
+
   useFocusEffect(
     useCallback(() => {
-
-
       loadData();
     }, [data])
   );
 
-
-  const registerLayout = (id, event) => {
-    event.target.measure((fx, fy, width, height, px, py) => {
-      setLayouts((prev) => ({
-        ...prev,
-        [id]: { pageX: px, pageY: py, width, height },
-      }));
-    });
+  const registerLayout = (id, layout) => {
+    setLayouts((prev) => ({
+      ...prev,
+      [id]: layout,
+    }));
   };
 
   const dataIsPerson = data === 'Person';
 
   const handleDrop = (draggedId, dropX, dropY) => {
     for (const id in layouts) {
-      const numericId = Number(id);  // Convert string key to number
+      const numericId = Number(id);
       if (numericId === Number(draggedId)) continue;
       const { pageX, pageY, width, height } = layouts[id];
       if (
@@ -151,20 +169,10 @@ const Folders = ({ route }) => {
         dropY >= pageY &&
         dropY <= pageY + height
       ) {
-        // const fetchLocations = async () => {
-        //   try {
-        //     const data = await getAllPersonLinks();
-        //     console.log(data);
-        //   } catch (error) {
-        //     console.error('Failed to load locations:', error);
-        //   }
-        // };
-
-        // fetchLocations();
         Alert.alert(
           'Do you want to merge?',
-          // `Dragged ID: ${draggedId}\nDropped On ID: ${id}`,
-          '',
+                     `Dragged ID: ${draggedId}\nDropped On ID: ${id}`,
+
           [
             {
               text: 'Cancel',
@@ -174,15 +182,14 @@ const Folders = ({ route }) => {
               text: 'OK',
               onPress: async () => {
                 try {
-                  const data = await insertPersonLinkIfNotExists(draggedId, numericId);
+                  await insertPersonLinkIfNotExists(draggedId, numericId);
 
                   const persons = await getAllPersons();
                   const links = await getAllPersonLinks();
-                  const draggedPerson = result.find(p => p.id === draggedId);
+                  const draggedPerson = result.find((p) => p.id === draggedId);
                   const person1 = (draggedPerson?.imagePath ?? '').split('/').pop();
                   const name = draggedPerson?.name ?? '';
 
-                  console.log('pathh', person1);
                   const data_url = `${baseUrl}load_embeddings_for_recognition`;
                   const payload = {
                     persons,
@@ -194,20 +201,16 @@ const Folders = ({ route }) => {
                     const response = await fetch(data_url, {
                       method: 'POST',
                       headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                       },
-                      body: JSON.stringify(payload)
+                      body: JSON.stringify(payload),
                     });
 
-                    const result = await response.json();
-                    console.log('Embedding group after recognition:', result);
-                    await handleUpdateEmbeddings(name, result);
-                    //refresh page here 
+                    const resultRes = await response.json();
+                    await handleUpdateEmbeddings(name, resultRes);
                     await loadData();
-                    // return result.group || result;  // adapt depending on response structure
                   } catch (error) {
-                    console.error('Error fetching embedding group for recognition:', error);
-                    return [];
+                    console.error('Error fetching embedding group:', error);
                   }
                 } catch (error) {
                   console.error('Failed to link person:', error);
@@ -217,7 +220,6 @@ const Folders = ({ route }) => {
           ],
           { cancelable: true }
         );
-
         return;
       }
     }
@@ -233,7 +235,6 @@ const Folders = ({ route }) => {
         <View style={styles.grid}>
           {result.map((item, index) => (
             <DraggableFolder
-              // key={item.id}
               key={`${item.id ?? 'missing'}-${index}`}
               item={item}
               dataIsPerson={dataIsPerson}
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1999,
+    borderColor: colors.primary,
   },
   image: {
     width: 100,
