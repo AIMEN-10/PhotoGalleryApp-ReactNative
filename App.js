@@ -9,6 +9,7 @@ import Folders from './Folders';
 import Editnavbar from './Editnavbar';
 import Search from './Search';
 import Sync from './Sync';
+import Undo from './Undo';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Editscreen from './Editscreen';
 import PersonInfo from './PersonInfo';
@@ -78,6 +79,11 @@ const MainStack = () => (
     <Stack.Screen 
       name="Sync" 
       component={Sync} 
+      options={{ headerShown: false, lazy: true }} 
+    />
+     <Stack.Screen 
+      name="Undo" 
+      component={Undo} 
       options={{ headerShown: false, lazy: true }} 
     />
     <Stack.Screen 

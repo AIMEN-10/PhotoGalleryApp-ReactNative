@@ -131,7 +131,12 @@ const Folders = ({ route }) => {
 
   const loadData = async () => {
     const folders = await FoldersData({ data });
-    setResult(folders || []);
+    // setResult(folders || []);
+     const sortedFolders = (folders || []).sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  );
+
+  setResult(sortedFolders);
   };
 
   useFocusEffect(

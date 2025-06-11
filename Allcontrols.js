@@ -49,7 +49,7 @@ const Allcontrols = ({ text, selectMode, selectedItems = [], onBulkEdit }) => {
               <Menu.Item
                 leadingIcon="undo"
                 title="Undo Changes"
-                onPress={() => { /* Define Undo Action */ }}
+                onPress={() =>handleIconPress("Undo")}
                 titleStyle={styles.menuText}
               />
             </Menu>

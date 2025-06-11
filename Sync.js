@@ -24,6 +24,8 @@ const Sync = ({ route }) => {
             const result = await response.json();
              console.log('API response:', result);
             result.forEach(item => {
+                path = `${baseUrl}images/${item.path}`;
+                console.log(path);
                 console.log(`ID: ${item.id}`);
                 console.log(`Capture Date: ${item.capture_date}`);
                 console.log(`Event Date: ${item.event_date}`);
