@@ -285,6 +285,25 @@ const Editscreen = (props) => {
     if (Array.isArray(persons)) {
       for (const person of persons) {
         console.log(person.personPath);
+
+        //for age
+const referenceDate = eventDate ? new Date(eventDate) : new Date(currentDateFormatted);
+
+    // 👇 Ensure DOB is present and valid
+    if (person.DOB) {
+      const birthDate = new Date(person.DOB);
+      let age = referenceDate.getFullYear() - birthDate.getFullYear();
+      const monthDiff = referenceDate.getMonth() - birthDate.getMonth();
+
+      if (monthDiff < 0 || (monthDiff === 0 && referenceDate.getDate() < birthDate.getDate())) {
+        age--; // Not yet had birthday this year
+      }
+
+      person.Age = age; // ✅ Add `age` to person
+    } else {
+      person.Age = null; // or 0 or undefined if DOB is missing
+    }
+        //
         const path = person.personPath.replace('face_images', './stored-faces');
         // console.log('Recognizing person:', person.name, 'at path:', path);
         await recognizePerson(person.name, path);
@@ -300,7 +319,7 @@ const Editscreen = (props) => {
       latestValue,
       currentDateFormatted
     });
-    var result = editDataForMultipleIds(imageId, latestValue, selectedEvents, eventDate, location, currentDateFormatted);
+    var result = editDataForMultipleIds(imageId, persons, selectedEvents, eventDate, location, currentDateFormatted);
     // var res= await mergepeople(selectedPerson.id, groupKey);
     console.log(mergeData)
 
