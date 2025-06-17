@@ -3,23 +3,65 @@ import { View, Text, StyleSheet, TextInput, Image, BackHandler } from 'react-nat
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { RadioButton } from 'react-native-paper';
 import colors from './theme/colors';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 
 const PersonInfo = ({ route }) => {
   const { imageDetails, screen } = route.params;
   const navigation = useNavigation();
   const hasSentData = useRef(false);
+  const [dates, setDates] = useState({});
+  const [showIndex, setShowIndex] = useState(null);
 
   const [persons, setPersons] = useState([]);
+  const [show, setShow] = useState(false);
+
+
+  const onChange = (event, selectedDate) => {
+    if (event.type === 'dismissed') {
+      setShowIndex(null);
+      return;
+    }
+
+    const currentDate = selectedDate || new Date();
+
+    // Update separate dates state (if you still need it)
+    const updatedDates = { ...dates };
+    updatedDates[showIndex] = currentDate;
+    setDates(updatedDates);
+
+    // ✅ Also update DOB in persons array
+    const updatedPersons = [...persons];
+    updatedPersons[showIndex].DOB = formatDate(currentDate);
+    setPersons(updatedPersons);
+
+    setShowIndex(null);
+  };
+
+
+  const showDatepicker = (index) => {
+    setShowIndex(index);
+  };
+
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const currentDateFormatted = formatDate(new Date());
 
   // Initialize persons state from imageDetails
   useEffect(() => {
     if (imageDetails && imageDetails.length > 0) {
+      console.log(persons)
       const initializedPersons = imageDetails.map((person) => ({
         id: person.person_id,
         path: person.person_path,
         name: person.person_name || '',
         gender: person.gender || 'Male',
+        DOB: person.DOB || ''
       }));
       setPersons(initializedPersons);
     }
@@ -37,6 +79,7 @@ const PersonInfo = ({ route }) => {
             name: person.name || 'Unknown',
             gender: person.gender || 'U',
             personPath: person.path || '',
+            DOB: person.DOB || ''
           }));
 
           route.params?.onGoBack?.(personData);
@@ -70,8 +113,8 @@ const PersonInfo = ({ route }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Name Person</Text>
-
       {persons.map((person, index) => (
+
         <View key={person.id || index} style={styles.card}>
           <View style={styles.imageContainer}>
             <Image
@@ -92,9 +135,9 @@ const PersonInfo = ({ route }) => {
             <View style={styles.radioGroup}>
               <View style={styles.radioButton}>
                 <RadioButton
-                  value="Male"
-                  status={person.gender === 'Male' ? 'checked' : 'unchecked'}
-                  onPress={() => updateGender(index, 'Male')}
+                  value="M"
+                  status={person.gender === 'M' ? 'checked' : 'unchecked'}
+                  onPress={() => updateGender(index, 'M')}
                   color={colors.dark}
                   uncheckedColor={colors.dark}
                 />
@@ -102,13 +145,59 @@ const PersonInfo = ({ route }) => {
               </View>
               <View style={styles.radioButton}>
                 <RadioButton
-                  value="Female"
-                  status={person.gender === 'Female' ? 'checked' : 'unchecked'}
-                  onPress={() => updateGender(index, 'Female')}
+                  value="F"
+                  status={person.gender === 'F' ? 'checked' : 'unchecked'}
+                  onPress={() => updateGender(index, 'F')}
                   color={colors.dark}
                   uncheckedColor={colors.dark}
                 />
                 <Text style={styles.label}>Female</Text>
+              </View>
+              <View style={styles.radioButton}>
+                <RadioButton
+                  value="U"
+                  status={person.gender === 'U' ? 'checked' : 'unchecked'}
+                  onPress={() => updateGender(index, 'U')}
+                  color={colors.dark}
+                  uncheckedColor={colors.dark}
+                />
+                <Text style={styles.label}>Other</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'column' }}>
+              <Text style={styles.label}>Date of Birth:</Text>
+
+              <View style={{ flexDirection: 'row' }}>
+                <Text style={styles.label}>
+                  {person.DOB ? person.DOB : 'Select Date'}
+                </Text>
+
+
+                <Icon name="event" size={30} color={colors.dark} onPress={() => showDatepicker(index)} />
+
+                {showIndex === index && (
+                  <DateTimePicker
+                    testID="dateTimePicker"
+                    value={dates[index] || new Date()}
+                    mode="date"
+                    is24Hour={true}
+                    display={Platform.OS === 'android' ? 'spinner' : 'spinner'}
+                    onChange={onChange}
+                    maximumDate={new Date()}
+                  />
+
+                )}
+
+                {/* {show && (
+                  <DateTimePicker
+                    testID="dateTimePicker"
+                    value={date}
+                    mode="date"
+                    is24Hour={true}
+                    display="default"
+                    onChange={onChange}
+                  />
+                )} */}
               </View>
             </View>
           </View>
@@ -165,8 +254,7 @@ const styles = StyleSheet.create({
     color: colors.dark,
   },
   radioGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'col',
   },
   radioButton: {
     flexDirection: 'row',

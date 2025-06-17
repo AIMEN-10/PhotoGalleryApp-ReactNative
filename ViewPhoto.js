@@ -171,22 +171,36 @@ const panResponder = useRef(
   </TouchableWithoutFeedback>
 
   {showFaces && persons.length > 0 && (
-    <View style={styles.facesOverlay}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {persons.map((person, index) => (
+  <View style={styles.facesOverlay}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      {persons.map((person, index) => {
+        const isUnknown =
+          !person.person_name || person.person_name.toLowerCase() === 'unknown' ;
+
+        return (
           <TouchableWithoutFeedback
-            key={person.person_id || index} 
-            onPress={() => showtrainingimages(person.person_id)} 
+            key={person.person_id || index}
+            onPress={() => showtrainingimages(person.person_id)}
           >
-            <Image
-              source={{ uri: baseUrl + person.person_path }}
-              style={styles.faceImage}
-            />
+            <View style={styles.faceContainer}>
+              <Image
+                source={{ uri: baseUrl + person.person_path }}
+                style={styles.faceImage}
+              />
+              {isUnknown && (
+                <Image
+                  source={require('./asset/qm.png')}
+                  style={styles.questionMark}
+                />
+              )}
+            </View>
           </TouchableWithoutFeedback>
-        ))}
-      </ScrollView>
-    </View>
-  )}
+        );
+      })}
+    </ScrollView>
+  </View>
+)}
+
 
 </View>
 
@@ -247,13 +261,13 @@ const styles = StyleSheet.create({
   },
 
 
-  faceImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 10,
-    resizeMode: 'cover',
-  },
+  // faceImage: {
+  //   width: 80,
+  //   height: 80,
+  //   borderRadius: 8,
+  //   marginRight: 10,
+  //   resizeMode: 'cover',
+  // },
   facesOverlay: {
     position: 'absolute',
     bottom: 60, // Distance from bottom of image
@@ -264,6 +278,26 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     zIndex: 10,
   },
+faceContainer: {
+  position: 'relative',
+  marginRight: 8, // spacing between faces
+},
+
+faceImage: {
+  width: 80,
+  height: 80,
+  borderRadius: 40, // circular image
+},
+
+questionMark: {
+  position: 'absolute',
+  bottom: 4,
+  right: 4,
+  width: 20,
+  height: 20,
+  backgroundColor: '#fff',
+  borderRadius: 10,
+},
 
 
 });

@@ -158,7 +158,8 @@ const getImageDetails = async (imageId) => {
               p.id AS person_id,
               p.name AS person_name,
               p.gender,
-              p.path AS person_path
+              p.path AS person_path,
+              p.DOB AS DOB
     
             FROM Image i
             LEFT JOIN ImagePerson ip ON i.id = ip.image_id
@@ -200,7 +201,8 @@ const getImageDetails = async (imageId) => {
                 person_id: row.person_id,
                 person_name: row.person_name,
                 gender: row.gender,
-                person_path: row.person_path
+                person_path: row.person_path,
+                DOB:row.DOB
               });
             }
           }
