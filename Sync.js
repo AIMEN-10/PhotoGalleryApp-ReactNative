@@ -1,12 +1,16 @@
 import React from 'react';
-import { View, StyleSheet, Image, Text } from 'react-native';
+import { View, StyleSheet, Image, Text ,Alert} from 'react-native';
 import { Button } from 'react-native-paper';
 import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
 import { SvgXml } from 'react-native-svg';
 import SyncLogo from './src/images/sync_logo.svg';
-import { getAllSyncImages, getImageDetails } from './Databasequeries';
+import { getAllSyncImages, getImageDetails, editDataForMultipleIds, checkIfHashExists,insertEvent,linkImageToPerson,insertPerson ,InsertImageData} from './Databasequeries';
+import ImageResizer from 'react-native-image-resizer';
+import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 
+import RNFS from 'react-native-fs'; // for local file handling
+import { requestMediaLibraryPermission } from './Permission';
 
 const Sync = ({ route }) => {
     const { data } = route.params || {};
@@ -22,10 +26,137 @@ const Sync = ({ route }) => {
                 body: JSON.stringify(data),
             });
             const result = await response.json();
-             console.log('API response:', result);
-            result.forEach(item => {
-                path = `${baseUrl}images/${item.path}`;
+            console.log('API response:', result);
+
+            for (const item of result) {
+                const path = `${baseUrl}images/${item.path}`;
                 console.log(path);
+
+                const existingData = await checkIfHashExists(item.hash);
+
+                if (existingData) {
+                    const { id, last_modified_date } = existingData;
+                    
+                    if (last_modified_date < item.last_modified) {
+                        const eventIds = [];
+
+                        for (const eventName of item.events) {
+                            try {
+                                const result = await insertEvent(eventName.name); // returns { message, id }
+                                if (result?.id != null) {
+                                    eventIds.push(result.id);
+                                }
+                            } catch (error) {
+                                console.error(`Error processing event "${eventName}":`, error);
+                            }
+                        }
+                        // Use id in the edit function, or log last_modified_date if needed
+                        await editDataForMultipleIds(
+                            id,
+                            item.persons,
+                            eventIds,
+                            item.eventDate,
+                            item.location?.name ?? null,
+                            item.currentDateFormatted
+
+                        );
+
+                        // Optionally use last_modified_date if needed
+                        console.log(`Last modified date: ${last_modified_date}`);
+                    }
+                    else {
+                        console.log("this image has the latest record ");
+                    }
+                }
+                else {
+                    // Download, resize, save image and metadata
+                    try {
+                        const hasPermission = await requestMediaLibraryPermission();
+                        if (!hasPermission) {
+                            Alert.alert("Permission Denied", "Media access permission is required.");
+                            continue; // Skip this image
+                        }
+                          console.log('CameraRoll object:', CameraRoll);
+
+                        // 1. Download the image and save to cache
+                        const randomStr = Math.random().toString(36).substring(2, 8); // 6-character random string
+                        const uniqueFilename = `image_${Date.now()}_${randomStr}.jpg`;
+                        const downloadPath = `${RNFS.CachesDirectoryPath}/${uniqueFilename}`;
+                        const download = await RNFS.downloadFile({
+                            fromUrl: path,
+                            toFile: downloadPath,
+                        }).promise;
+
+                        if (download.statusCode !== 200) throw new Error("Image download failed");
+
+                        // 2. Resize the image
+                        const resizedImage = await ImageResizer.createResizedImage(
+                            `file://${downloadPath}`,
+                            800, 600,
+                            'JPEG', 80
+                        );
+
+                        // 3. Save resized image to gallery
+                        const savedPath = await CameraRoll.save(resizedImage.uri, { type: 'photo' });
+
+                        // 4. Store in database
+                        const imageId = await InsertImageData({
+                            path: savedPath,
+                            capture_date: item.capture_date,
+                            last_modified: item.last_modified,
+                            hash: item.hash,
+                        });
+                        console.log('🖼️ Image inserted with ID:', imageId);
+
+                        // 5. Insert persons and link
+                        for (const person of item.persons) {
+                            try {
+                                const personId = await insertPerson({ person });
+                                console.log('👤 Person inserted with ID:', personId);
+
+                                if (personId) {
+                                    await linkImageToPerson({
+                                        imageId: imageId,
+                                        personId: personId,
+                                    });
+                                    console.log('🔗 Image linked to person:', personId, imageId);
+                                }
+                            } catch (error) {
+                                console.log('❌ Error inserting person:', error);
+                            }
+                        }
+
+
+                        const eventIds = [];
+
+                        for (const eventName of item.events) {
+                            try {
+                                const result = await insertEvent(eventName.name); // returns { message, id }
+                                if (result?.id != null) {
+                                    eventIds.push(result.id);
+                                }
+                            } catch (error) {
+                                console.error(`Error processing event "${eventName}":`, error);
+                            }
+                        }
+                        // 6. Call editDataForMultipleIds
+                        await editDataForMultipleIds(
+                            imageId,
+                            item.persons,
+                            eventIds,
+                            item.eventDate,
+                            item.location?.name ?? null,
+                            item.currentDateFormatted
+                        );
+
+                        Alert.alert("Success", "Image saved and path stored.");
+                    } catch (error) {
+                        console.error("Process failed:", error);
+                        Alert.alert("Error", error.message);
+                    }
+
+                }
+
                 console.log(`ID: ${item.id}`);
                 console.log(`Capture Date: ${item.capture_date}`);
                 console.log(`Event Date: ${item.event_date}`);
@@ -40,7 +171,7 @@ const Sync = ({ route }) => {
                     console.log(`  Event ${index + 1}:`, event);
                 });
                 console.log('---');
-            });
+            }
 
         }
         catch (error) {

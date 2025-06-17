@@ -245,12 +245,13 @@ const editData = async (imageId, latestValue, selectedEvents, eventDate, locatio
   // 1. Update people
   if (Array.isArray(latestValue)) {
     for (const person of latestValue) {
-      const { name, gender, personPath } = person;
+      const { name, gender,DOB,Age, personPath } = person;
+      const path = person?.path ?? personPath; 
       try {
         await database.transaction(async (tx) => {
           await tx.executeSql(
-            'UPDATE person SET name = ?, gender = ? WHERE path = ?',
-            [name, gender, personPath]
+            'UPDATE person SET name = ?, gender = ?,DOB=?,Age=? WHERE path = ?',
+            [name, gender,DOB,Age, path]
           );
         });
         console.log(`✅ Updated person ${name}`);
@@ -412,27 +413,32 @@ const getImageData = async (imageId) => {
 
 
 //person 
-
 const createPersonTable = async () => {
-
   db.transaction((txn) => {
+    // Optional: Drop existing table (only if you don't need existing data)
+    // txn.executeSql(`DROP TABLE IF EXISTS person`);
+
     txn.executeSql(
-      `CREATE TABLE IF NOT EXISTS person (
+      `CREATE TABLE IF NOT EXISTS Person (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         path TEXT,
-        gender TEXT NOT NULL DEFAULT 'U'
-      )`, // <-- closing parenthesis added here
+        gender TEXT NOT NULL DEFAULT 'U',
+        DOB DATE,
+        Age INT
+      )`,
       [],
-      (sqlTxn, res) => {
-        console.log('Person table created successfully');
+      () => {
+        console.log('Person table created (with DOB and Age)');
       },
-      (sqlTxn, error) => {
+      (txn, error) => {
         console.log('Error creating Person table: ' + error.message);
       }
     );
   });
 };
+
+
 
 
 const insertPerson = async ({ person }) => {
@@ -442,8 +448,8 @@ const insertPerson = async ({ person }) => {
 
     db.transaction((txn) => {
       txn.executeSql(
-        `INSERT INTO person (name, path) VALUES (?, ?)`,
-        [person.name, person.path],
+        `INSERT INTO person (name, path,gender,DOB,Age) VALUES (?, ?, ?,?,?)`,
+        [person.name, person.path,person.gender || 'U',person.DOB,person.Age],
         (t, res) => {
           // If insertion is successful, log the ID and resolve the promise with the personId
           const personId = res.insertId;
@@ -567,7 +573,9 @@ const insertEvent = async (name) => {
         (txObj, resultSet) => {
           if (resultSet.rows.length > 0) {
             // Event already exists
-            resolve('Event already exists.');
+            // resolve('Event already exists.');
+            const existingId = resultSet.rows.item(0).id;
+            resolve({ message: 'Event already exists.', id: existingId });
           } else {
             // Step 2: Insert event
             tx.executeSql(
@@ -897,10 +905,15 @@ const checkIfHashExists = async (hash) => {
   return new Promise((resolve, reject) => {
     database.transaction(tx => {
       tx.executeSql(
-        'SELECT id FROM image WHERE hash = ?AND is_deleted = 0',
+        'SELECT id, last_modified FROM image WHERE hash = ? AND is_deleted = 0',
         [hash],
         (_, { rows }) => {
-          resolve(rows.length > 0); // true if exists
+          if (rows.length > 0) {
+            const item = rows.item(0);
+            resolve({ id: item.id, last_modified_date: item.last_modified });
+          } else {
+            resolve(null); // No match found
+          }
         },
         (_, error) => {
           console.error('❌ Hash check failed:', error);
@@ -910,6 +923,7 @@ const checkIfHashExists = async (hash) => {
     });
   });
 };
+
 
 const getEventsByImageId = (imageId) => {
   return new Promise((resolve, reject) => {
