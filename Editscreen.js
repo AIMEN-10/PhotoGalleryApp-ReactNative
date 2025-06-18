@@ -199,10 +199,10 @@ const Editscreen = (props) => {
 
     console.log('Selected events:', selected);
   };
-  const recognizePerson = async (name, imagePath) => {
+  const recognizePerson = async (person, imagePath) => {
     // const url = `http://192.168.100.22:5000/recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(name)}`;
 
-    const url = `${baseUrl}recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(name)}`;
+    const url = `${baseUrl}recognize_person?image_path=${encodeURIComponent(imagePath)}&name=${encodeURIComponent(person.name)}`;
 
     try {
       const response = await fetch(url, {
@@ -238,7 +238,7 @@ const Editscreen = (props) => {
 
       const result = await response.json();
       console.log('Embedding group for recognition:', result);
-      await handleUpdateEmbeddings(name, result);
+      await handleUpdateEmbeddings(person, result);
 
       // return result.group || result;  // adapt depending on response structure
     } catch (error) {
@@ -306,7 +306,7 @@ const referenceDate = eventDate ? new Date(eventDate) : new Date(currentDateForm
         //
         const path = person.personPath.replace('face_images', './stored-faces');
         // console.log('Recognizing person:', person.name, 'at path:', path);
-        await recognizePerson(person.name, path);
+        await recognizePerson(person, path);
       }
     } else {
       //console.warn('No valid persons array found in latestValue');

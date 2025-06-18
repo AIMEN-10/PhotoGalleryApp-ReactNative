@@ -55,7 +55,7 @@ const Sync = ({ route }) => {
                             id,
                             item.persons,
                             eventIds,
-                            item.eventDate,
+                            item.event_date,
                             item.location?.name ?? null,
                             item.currentDateFormatted
 
@@ -144,7 +144,7 @@ const Sync = ({ route }) => {
                             imageId,
                             item.persons,
                             eventIds,
-                            item.eventDate,
+                            item.event_date,
                             item.location?.name ?? null,
                             item.currentDateFormatted
                         );

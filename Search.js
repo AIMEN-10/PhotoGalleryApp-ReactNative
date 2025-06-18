@@ -6,7 +6,7 @@ import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { getAllEvents,searchImages } from './Databasequeries';
+import { getAllEvents, searchImages } from './Databasequeries';
 
 const Search = ({ route }) => {
   const { data } = route.params || {};
@@ -24,7 +24,8 @@ const Search = ({ route }) => {
 
   const [eventData, setEventData] = useState([]);
   const [selectedEvents, setSelectedEventsState] = useState({});
-const navigation = useNavigation();
+  const [Age, setAge] = useState();
+  const navigation = useNavigation();
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -69,7 +70,7 @@ const navigation = useNavigation();
     setShow(true);
   };
 
-  const SearchImages = async() => {
+  const SearchImages = async () => {
     // console.log('Names:', chips);
     // console.log('Genders:', isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : '');
     // console.log('Locations:', locations);
@@ -77,19 +78,20 @@ const navigation = useNavigation();
     // console.log('Selected Events:', selectedEvents);
 
     const filters = {
-  Names: chips,
-  Genders: [isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : ''],
-  Locations: locations,
-  CaptureDates: dates,
-  SelectedEvents: selectedEvents,
-};
-       navigation.navigate('Images', { data: filters });
+      Names: chips,
+      Genders: [isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : ''],
+      Age: Age,
+      Locations: locations,
+      CaptureDates: dates,
+      SelectedEvents: selectedEvents,
+    };
+    navigation.navigate('Images', { data: filters });
 
-// searchImages(filters, images => {
-//   console.log('RESULT IMAGES:', images);
-//       navigation.navigate('Images', { data: data + ';' +filters + ';' + images.path });
+    // searchImages(filters, images => {
+    //   console.log('RESULT IMAGES:', images);
+    //       navigation.navigate('Images', { data: data + ';' +filters + ';' + images.path });
 
-// });
+    // });
 
 
 
@@ -157,7 +159,19 @@ const navigation = useNavigation();
           />
           <Text style={{ fontSize: 18, color: colors.dark }}>Female</Text>
         </View>
+        <View>
+          <Text style={styles.text}>Age</Text>
+          {/* <View style={styles.nameContainer}> */}
+          <TextInput
+            style={styles.input}
+            value={Age}
+            onChangeText={(text) => setAge(text)}
+            placeholder="Enter Age"
+            placeholderTextColor={colors.grey}
+            keyboardType="number-pad"
+          />
 
+        </View>
         {/* Events */}
         <Text style={styles.text}>Events</Text>
         {eventData.map(event => (

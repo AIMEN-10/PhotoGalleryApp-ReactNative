@@ -114,14 +114,23 @@ WHERE img.is_deleted = 0
       FROM imageperson ip
       JOIN person p ON ip.person_id = p.id
       WHERE ip.image_id = img.id
-        AND TRIM(LOWER(p.name)) = 'unknown'
+        AND (
+          TRIM(LOWER(p.name)) = 'unknown'
+          OR p.name IS NULL
+          OR p.gender IS NULL
+          OR TRIM(LOWER(p.gender)) = 'u'
+          OR p.dob IS NULL
+          OR p.dob IS NULL
+
+        )
     )
     OR NOT EXISTS (
       SELECT 1
       FROM imageevent ie
       WHERE ie.image_id = img.id
     )
-  );`
+  );
+`
       ,
       [],
       (t, res) => {
@@ -1384,6 +1393,7 @@ const searchImages = (filters) => {
     const {
       Names = [],
       Genders = [],
+      Age=[],
       Locations = [],
       CaptureDates = [],
       SelectedEvents = {},
@@ -1621,26 +1631,29 @@ const getPersonData = (person_name) => {
   });
 };
 
-const updatePersonWhereEmbedding = async (name, embedding) => {
+const updatePersonWhereEmbedding = async (person, embedding) => {
   const database = await db;
 
   await database.transaction(tx => {
     tx.executeSql(
       `UPDATE person 
-       SET name = ? 
+       SET name = ? ,
+       gender = ?,
+       DOB = ?,
+       Age = ?
        WHERE path = ?`,
-      [name, embedding]
+      [person.name,person.gender,person.DOB,person.Age, embedding]
     );
   });
 };
 
-const handleUpdateEmbeddings = async (name, result) => {
+const handleUpdateEmbeddings = async (person, result) => {
   const embeddings = result.embeddings;
 
   for (const embedding of embeddings) {
     console.log(embedding);
     var emb = 'face_images/' + embedding;
-    await updatePersonWhereEmbedding(name, emb);
+    await updatePersonWhereEmbedding(person, emb);
   }
 };
 
