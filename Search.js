@@ -79,7 +79,7 @@ const Search = ({ route }) => {
 
     const filters = {
       Names: chips,
-      Genders: [isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : ''],
+      Genders: [isMaleChecked ? 'M' : '', isFemaleChecked ? 'F' : ''],
       Age: Age,
       Locations: locations,
       CaptureDates: dates,

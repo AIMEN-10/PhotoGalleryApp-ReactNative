@@ -4,8 +4,9 @@ import { Menu, Divider } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
+import { markImageAsDeleted } from './Databasequeries'; // Adjust the import based on your file structure
 
-const Allcontrols = ({ text, selectMode, selectedItems = [], onBulkEdit }) => {
+const Allcontrols = ({ text, selectMode, selectedItems = [], onBulkEdit,  onRefresh }) => {
   const navigation = useNavigation();
   const [visible, setVisible] = useState(false);
 
@@ -49,18 +50,36 @@ const Allcontrols = ({ text, selectMode, selectedItems = [], onBulkEdit }) => {
               <Menu.Item
                 leadingIcon="undo"
                 title="Undo Changes"
-                onPress={() =>handleIconPress("Undo")}
+                onPress={() => handleIconPress("Undo")}
                 titleStyle={styles.menuText}
               />
             </Menu>
           ) : (
             selectedItems.length > 0 && (
-              <TouchableOpacity style={styles.bulkEditButton} onPress={onBulkEdit}>
-                <Text style={styles.bulkEditButtonText}>Bulk Edit ({selectedItems.length})</Text>
-              </TouchableOpacity>
-            )
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+
+                <TouchableOpacity
+                  style={[styles.bulkEditButton, { flexDirection: 'row', alignItems: 'center', marginRight: 10 }]}
+                  onPress={() => {
+                    selectedItems.forEach((id) => markImageAsDeleted(id)); // <-- Call your delete function
+                  onRefresh?.(); 
+                  }}
+                >
+                  <Icon name="delete" size={20} color={colors.dark} style={{ marginRight: 5 }} />
+                  <Text style={styles.bulkEditButtonText}>Delete</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.bulkEditButton} 
+                // onPress={onBulkEdit}>
+                onPress={() => {
+  onBulkEdit?.(); // perform bulk edit
+  onRefresh?.();  // refresh the view
+}}>
+                  <Text style={styles.bulkEditButtonText}>Bulk Edit ({selectedItems.length})</Text>
+                </TouchableOpacity>
+              </View>)
           )}
         </View>
+
 
         <View style={[styles.circle, { backgroundColor: colors.secondary }]} />
       </View>
@@ -69,11 +88,11 @@ const Allcontrols = ({ text, selectMode, selectedItems = [], onBulkEdit }) => {
 };
 
 const styles = StyleSheet.create({
- main: {
-  backgroundColor: colors.primary , // Adds transparency (AA ≈ 66% opacity)
-}
+  main: {
+    backgroundColor: colors.primary, // Adds transparency (AA ≈ 66% opacity)
+  }
 
-,
+  ,
   heading: {
     fontSize: 25,
     margin: 10,

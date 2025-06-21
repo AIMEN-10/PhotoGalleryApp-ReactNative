@@ -12,7 +12,7 @@ const createTableImage = () => {
                         is_sync INTEGER NOT NULL DEFAULT 0,
                         capture_date DATE,
                         event_date DATE,
-                        last_modified DATE,
+                        last_modified DATETIME,
                         location_id INTEGER,
                         is_deleted INTEGER NOT NULL DEFAULT 0,
                         hash TEXT NOT NULL,
@@ -998,38 +998,63 @@ const getEventsByImageId = (imageId) => {
 const getImagesGroupedByDate = () => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
+      // Query without INNER JOIN to avoid crashes
       tx.executeSql(
         `
-            SELECT i.capture_date, i.path
-            FROM Image i
-            INNER JOIN (
-              SELECT capture_date, MIN(id) as min_id
-              FROM Image
-              WHERE is_deleted = 0
-              GROUP BY capture_date
-            ) grouped ON i.id = grouped.min_id
-            ORDER BY i.capture_date DESC
-            `,
+        SELECT capture_date, MIN(id) as min_id
+        FROM Image
+        WHERE is_deleted = 0
+        GROUP BY capture_date
+        ORDER BY capture_date DESC
+        
+        `,
         [],
-        (tx, results) => {
-          const grouped = [];
-
-          for (let i = 0; i < results.rows.length; i++) {
-            const row = results.rows.item(i);
-            grouped.push({
-              name: row.capture_date,
-              imagePath: row.path,
-            });
+        (tx, groupResults) => {
+          if (groupResults.rows.length === 0) {
+            resolve([]); // ✅ No images, return empty list
+            return;
           }
 
-          resolve(grouped);
+          const placeholders = [];
+          const ids = [];
+
+          for (let i = 0; i < groupResults.rows.length; i++) {
+            const row = groupResults.rows.item(i);
+            placeholders.push('?');
+            ids.push(row.min_id);
+          }
+
+          // Now get the image paths for those min_id values
+          tx.executeSql(
+            `SELECT id, capture_date, path FROM Image WHERE id IN (${placeholders.join(',')})`,
+            ids,
+            (tx, imageResults) => {
+              const grouped = [];
+
+              for (let i = 0; i < imageResults.rows.length; i++) {
+                const row = imageResults.rows.item(i);
+                grouped.push({
+                  name: row.capture_date,
+                  imagePath: row.path,
+                });
+              }
+
+              // Sort by capture_date (in case IN doesn't preserve order)
+              grouped.sort((a, b) => new Date(b.name) - new Date(a.name));
+
+              resolve(grouped);
+            },
+            (tx, error) => {
+              console.error('❌ Second query failed:', error?.message || error);
+              reject(error);
+            }
+          );
         },
         (tx, error) => {
-          console.error('❌ SQL execution failed:', error);
-          reject(error);
+          // console.error('❌ First grouping query failed:', error?.message || error);
+          // reject(error);
         }
       );
-
     });
   });
 };
@@ -1393,18 +1418,18 @@ const searchImages = (filters) => {
     const {
       Names = [],
       Genders = [],
-      Age=[],
+      Age = [],
       Locations = [],
       CaptureDates = [],
       SelectedEvents = {},
     } = filters;
 
-    // Clean arrays (remove empty strings)
-    const clean = (arr) => arr.filter(val => val && val.trim() !== '');
-    const wrapValues = (arr) => clean(arr).map(v => `'${v.replace(/'/g, "''")}'`).join(',');
+    const clean = (arr) => arr.filter(val => val && val.toString().trim() !== '');
+    const wrapValues = (arr) => clean(arr).map(v => `'${v.toString().replace(/'/g, "''")}'`).join(',');
 
     const nameStr = wrapValues(Names);
     const genderStr = wrapValues(Genders);
+    const ageStr = wrapValues(Age);
     const locationStr = wrapValues(Locations);
     const dateStr = wrapValues(CaptureDates);
 
@@ -1422,41 +1447,46 @@ const searchImages = (filters) => {
       WHERE i.is_deleted = 0
     `;
 
-    // Add filters dynamically
-    if (nameStr && genderStr) {
-      query += ` AND (
-        (p.name IN (${nameStr}) AND p.gender IN (${genderStr}))
-        OR p.id IN (
-          SELECT person2_id FROM person_links WHERE person1_id IN (
-            SELECT id FROM person WHERE name IN (${nameStr}) AND gender IN (${genderStr})
-          )
-          UNION
-          SELECT person1_id FROM person_links WHERE person2_id IN (
-            SELECT id FROM person WHERE name IN (${nameStr}) AND gender IN (${genderStr})
+    const conditions = [];
+
+    // Person filters
+    if (nameStr) conditions.push(`p.name IN (${nameStr})`);
+    if (genderStr) conditions.push(`p.gender IN (${genderStr})`);
+    if (ageStr) conditions.push(`p.Age IN (${ageStr})`);
+
+    // Handle linked persons if name/gender/age provided
+    if (conditions.length > 0) {
+      const personSubquery = [];
+      if (nameStr) personSubquery.push(`name IN (${nameStr})`);
+      if (genderStr) personSubquery.push(`gender IN (${genderStr})`);
+      if (ageStr) personSubquery.push(`Age IN (${ageStr})`);
+
+      const personWhere = personSubquery.length > 0 ? personSubquery.join(' AND ') : '';
+
+      query += `
+        AND (
+          (${conditions.join(' AND ')})
+          OR p.id IN (
+            SELECT person2_id FROM person_links WHERE person1_id IN (
+              SELECT id FROM person WHERE ${personWhere}
+            )
+            UNION
+            SELECT person1_id FROM person_links WHERE person2_id IN (
+              SELECT id FROM person WHERE ${personWhere}
+            )
           )
         )
-      )`;
-    } else if (nameStr) {
-      query += ` AND p.name IN (${nameStr})`;
-    } else if (genderStr) {
-      query += ` AND p.gender IN (${genderStr})`;
+      `;
     }
 
-    if (locationStr) {
-      query += ` AND l.name IN (${locationStr})`;
-    }
-
-    if (dateStr) {
-      query += ` AND i.capture_date IN (${dateStr})`;
-    }
-
-    if (eventStr) {
-      query += ` AND e.id IN (${eventStr})`;
-    }
+    // Other filters
+    if (locationStr) query += ` AND l.name IN (${locationStr})`;
+    if (dateStr) query += ` AND i.capture_date IN (${dateStr})`;
+    if (eventStr) query += ` AND e.id IN (${eventStr})`;
 
     query += ` ORDER BY i.capture_date DESC;`;
 
-
+    // Execute query
     db.transaction(tx => {
       tx.executeSql(
         query,
@@ -1816,6 +1846,114 @@ const getAllSyncImages = () => {
 };
 
 
+const createLinksIfNotExist = (links) => {
+  return new Promise((resolve, reject) => {
+    db.transaction(
+      (txn) => {
+        const promises = [];
+
+        links.forEach((linkObj) => {
+          if (!linkObj || Object.keys(linkObj).length === 0) return;
+
+          Object.entries(linkObj).forEach(([path1, relatedPaths]) => {
+            const linkPromise = new Promise((resolveLink) => {
+              txn.executeSql(
+                'SELECT id, name FROM Person WHERE path = ?',
+                [path1],
+                (_, res1) => {
+                  if (res1.rows.length === 0) {
+                    console.log(`❌ Person not found for path: ${path1}`);
+                    return resolveLink();
+                  }
+
+                  const person1 = res1.rows.item(0);
+                  const person1Id = person1.id;
+
+                  const relatedTasks = relatedPaths.map(
+                    (path2) =>
+                      new Promise((resolveInner) => {
+                        txn.executeSql(
+                          'SELECT id, name FROM Person WHERE path = ?',
+                          [path2],
+                          (_, res2) => {
+                            if (res2.rows.length === 0) {
+                              console.log(`❌ Person not found for path: ${path2}`);
+                              return resolveInner();
+                            }
+
+                            const person2 = res2.rows.item(0);
+                            const person2Id = person2.id;
+
+                            txn.executeSql(
+                              `SELECT person1_id, person2_id FROM person_links 
+   WHERE (person1_id = ? AND person2_id = ?) 
+      OR (person1_id = ? AND person2_id = ?)`,
+                              [person1Id, person2Id, person2Id, person1Id],
+                              (_, resLink) => {
+                                if (resLink.rows.length > 0) {
+                                  console.log(`🔗 Link already exists between ${person1.name} and ${person2.name}`);
+                                  return resolveInner();
+                                }
+
+                                txn.executeSql(
+                                  'INSERT INTO person_links (person1_id, person2_id) VALUES (?, ?)',
+                                  [person1Id, person2Id],
+                                  () => {
+                                    console.log(`✅ Link created between ${person1.name} and ${person2.name}`);
+                                    resolveInner();
+                                  },
+                                  (_, errInsert) => {
+                                    console.error('❌ Failed to insert link:', errInsert.message);
+                                    resolveInner();
+                                  }
+                                );
+                              },
+                              (_, errLink) => {
+                                console.error('❌ Error checking link:', errLink.message);
+                                resolveInner();
+                              }
+                            );
+                          },
+                          (_, err2) => {
+                            console.error('❌ Error getting person2:', err2.message);
+                            resolveInner();
+                          }
+                        );
+                      })
+                  );
+
+                  Promise.all(relatedTasks).then(() => resolveLink());
+                },
+                (_, err1) => {
+                  console.error('❌ Error getting person1:', err1.message);
+                  resolveLink();
+                }
+              );
+            });
+
+            promises.push(linkPromise);
+          });
+        });
+
+        // Wait for all links to be processed
+        Promise.all(promises)
+          .then(() => {
+            console.log('🎉 All links processed and committed.');
+            resolve();
+          })
+          .catch((e) => {
+            console.error('❌ Error during link processing:', e.message);
+            reject(e);
+          });
+      },
+      (txnErr) => {
+        console.error('❌ Transaction error:', txnErr.message);
+        reject(txnErr);
+      }
+    );
+  });
+};
+
 
 export {
   InsertImageData, getAllImageData, DeletetAllData, insertPerson, linkImageToPerson, getPeopleWithImages, getPersonTableColumns,
@@ -1823,6 +1961,7 @@ export {
   getEventsByImageId, getImagesGroupedByDate, getDataByDate, groupImagesByLocation, getImagesByLocationId, getImagesGroupedByEvent,
   getImagesByEventId, markImageAsDeleted, getAllLocations, getAllPersonLinks, insertPersonLinkIfNotExists, searchImages,
   getAllPersons, getImagePersonMap, getPersonAndLinkedList, getPersonData, handleUpdateEmbeddings, getAllImages, mergepeople, getAllSyncImages,
+  createLinksIfNotExist,
   resetImageTable
 
 };

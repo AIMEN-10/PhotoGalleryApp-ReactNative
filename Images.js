@@ -97,9 +97,8 @@ const Images = ({ route }) => {
 //     loadData();
 //   }, [data, fetchedPhotosFromHook]);
 
-useFocusEffect(
-  useCallback(() => {
-    const reloadData = async () => {
+
+const reloadData = async () => {
       if (!data) return;
 
       if (Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
@@ -114,6 +113,9 @@ useFocusEffect(
         }
       }
     };
+useFocusEffect(
+  useCallback(() => {
+    
 
     reloadData();
   }, [data, fetchedPhotosFromHook])
@@ -187,6 +189,9 @@ useEffect(() => {
     setIsModalVisible(false);  // Close the modal
   };
 
+const refreshData = () => {
+  reloadData(); 
+};
 
   
   return (
@@ -198,6 +203,7 @@ useEffect(() => {
             selectMode={selectMode}
             selectedItems={selectedItems}
             onBulkEdit={openEditModal}  // Open modal when bulk edit is clicked
+            onRefresh={refreshData}
           />
         </View>
 
