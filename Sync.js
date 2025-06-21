@@ -6,7 +6,7 @@ import Allcontrols from './Allcontrols';
 import { SvgXml } from 'react-native-svg';
 import SyncLogo from './src/images/sync_logo.svg';
 import { getAllSyncImages, getImageDetails, editDataForMultipleIds, checkIfHashExists, insertEvent, linkImageToPerson, insertPerson,
-     InsertImageData, getAllPersons, getAllPersonLinks ,createLinksIfNotExist} from './Databasequeries';
+     InsertImageData, getAllPersons, getAllPersonLinks ,createLinksIfNotExist,clearAllTables} from './Databasequeries';
 import ImageResizer from 'react-native-image-resizer';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 
@@ -244,6 +244,27 @@ console.log("Links",result.links);
                     onPress={senddata}>
                     Sync Now
                 </Button>
+                {/* <Button
+                    mode='contained'
+                    style={styles.button}
+                    labelStyle={styles.buttonText}
+                    onPress={() => {
+                        Alert.alert(
+                            "Reset Database",
+                            "Are you sure you want to reset the database? This action cannot be undone.",
+                            [
+                                { text: "Cancel", style: "cancel" },
+                                {
+                                    text: "OK", onPress: () => {
+                                        clearAllTables();
+                                    }
+                                }
+                            ]
+                        );
+                    }}>
+                    Reset Database
+                    </Button> */}
+
             </View>
         </View>
     )

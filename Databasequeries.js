@@ -594,7 +594,10 @@ const insertEvent = async (name) => {
             tx.executeSql(
               'INSERT INTO Event (name) VALUES (?)',
               [name],
-              (txObj, result) => resolve('Event inserted successfully.'),
+              // (txObj, result) => resolve('Event inserted successfully.'),
+(txObj, result) => {
+                resolve({ message: 'Event inserted successfully.', id: result.insertId });
+              },
               (txObj, error) => reject(error)
             );
           }
@@ -1955,6 +1958,38 @@ const createLinksIfNotExist = (links) => {
 };
 
 
+const clearAllTables = async () => {
+  
+
+  db.transaction((tx) => {
+    // Disable foreign key constraints temporarily
+    tx.executeSql('PRAGMA foreign_keys = OFF;', [], () => {
+      // Get all user-defined tables
+      tx.executeSql(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';",
+        [],
+        (tx, results) => {
+          const len = results.rows.length;
+          for (let i = 0; i < len; i++) {
+            const tableName = results.rows.item(i).name;
+            tx.executeSql(`DELETE FROM "${tableName}";`);
+          }
+
+          // Optionally reset AUTOINCREMENT counters
+          tx.executeSql('DELETE FROM sqlite_sequence;');
+
+          // Re-enable foreign keys
+          tx.executeSql('PRAGMA foreign_keys = ON;');
+          console.log('All tables cleared successfully.');
+        },
+        (tx, error) => {
+          console.error('Failed to fetch table names:', error);
+        }
+      );
+    });
+  });
+};
+
 export {
   InsertImageData, getAllImageData, DeletetAllData, insertPerson, linkImageToPerson, getPeopleWithImages, getPersonTableColumns,
   getImagesForPerson, insertEvent, getAllEvents, getImageDetails, editDataForMultipleIds, checkIfHashExists, getImageData, getLocationById,
@@ -1962,7 +1997,8 @@ export {
   getImagesByEventId, markImageAsDeleted, getAllLocations, getAllPersonLinks, insertPersonLinkIfNotExists, searchImages,
   getAllPersons, getImagePersonMap, getPersonAndLinkedList, getPersonData, handleUpdateEmbeddings, getAllImages, mergepeople, getAllSyncImages,
   createLinksIfNotExist,
-  resetImageTable
+
+  resetImageTable,clearAllTables
 
 };
 
