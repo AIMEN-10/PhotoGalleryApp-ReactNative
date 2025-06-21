@@ -9,12 +9,12 @@ const AddEventPopup = ({ modalVisible, setModalVisible }) => {
   const addevent = async (text) => {
     console.log('Adding event:', text);
     try {
-      const message = await insertEvent(text);  // Get message from insertEvent
-      console.log('Insert message:', message);  // Log the raw message for debugging
+      const res= await insertEvent(text);  // Get message from insertEvent
+      console.log('Insert message:', res.message);  // Log the raw message for debugging
     
       // Check the message and perform actions accordingly
-      if (message === 'Event inserted successfully.') {
-        Alert.alert('Success', message, [
+      if (res.message === 'Event inserted successfully.') {
+        Alert.alert('Success', res.message, [
           {
             text: 'OK',
             onPress: () => {
@@ -23,8 +23,8 @@ const AddEventPopup = ({ modalVisible, setModalVisible }) => {
             },
           },
         ]);
-      } else if (message === 'Event already exists.') {
-        Alert.alert('Error', message, [
+      } else if (res.message === 'Event already exists.') {
+        Alert.alert('Error', res.message, [
           {
             text: 'OK',
             onPress: () => {
@@ -34,7 +34,7 @@ const AddEventPopup = ({ modalVisible, setModalVisible }) => {
           },
         ]);
       } else {
-        console.warn('Unexpected message:', message);  // Log unexpected message
+        console.warn('Unexpected message:', res.message);  // Log unexpected message
       }
       
     } catch (error) {
