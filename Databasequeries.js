@@ -3,32 +3,107 @@ import { openDatabase } from 'react-native-sqlite-storage';
 
 const db = openDatabase({ name: 'PhotoGallery.db' });
 const createTableImage = () => {
-  db.transaction(
-    (txn) => {
-      txn.executeSql(
-        `CREATE TABLE IF NOT EXISTS Image (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        path TEXT NOT NULL,
-                        is_sync INTEGER NOT NULL DEFAULT 0,
-                        capture_date DATE,
-                        event_date DATE,
-                        last_modified DATETIME,
-                        location_id INTEGER,
-                        is_deleted INTEGER NOT NULL DEFAULT 0,
-                        hash TEXT NOT NULL,
-                        FOREIGN KEY (location_id) REFERENCES Location(id)
-                    )`,
-        [],
-        (sqlTxn, res) => {
-          console.log('Image table created successfully');
-        },
-        (error) => {
-          console.log('Error creating Image table: ' + error.message);
-        }
-      );
+  // db.transaction(
+  //   (txn) => {
+  //     txn.executeSql(
+  //       `CREATE TABLE IF NOT EXISTS Image (
+  //                       id INTEGER PRIMARY KEY AUTOINCREMENT,
+  //                       path TEXT NOT NULL,
+  //                       is_sync INTEGER NOT NULL DEFAULT 0,
+  //                       capture_date DATE,
+  //                       event_date DATE,
+  //                       last_modified DATETIME,
+  //                       location_id INTEGER,
+  //                       is_deleted INTEGER NOT NULL DEFAULT 0,
+  //                       hash TEXT NOT NULL,
+  //                       FOREIGN KEY (location_id) REFERENCES Location(id)
+  //                   )`,
+  //       [],
+  //       (sqlTxn, res) => {
+  //         console.log('Image table created successfully');
+  //       },
+  //       (error) => {
+  //         console.log('Error creating Image table: ' + error.message);
+  //       }
+  //     );
+  //
+  //   }
+  // );
+db.transaction((txn) => {
+    // Step 1: Create the Image table
+    txn.executeSql(
+      `CREATE TABLE IF NOT EXISTS Image (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        path TEXT NOT NULL,
+        is_sync INTEGER NOT NULL DEFAULT 0,
+        capture_date DATE,
+        event_date DATE,
+        last_modified DATETIME,
+        location_id INTEGER,
+        is_deleted INTEGER NOT NULL DEFAULT 0,
+        hash TEXT NOT NULL,
+        FOREIGN KEY (location_id) REFERENCES Location(id)
+      );`,
+      [],
+      () => console.log('✅ Image table created'),
+      (_, error) => { console.log('❌ Error creating Image table: ' + error.message); return true; }
+    );
 
-    }
-  );
+    // Step 2: Create the ImageHistory table
+    txn.executeSql(
+      `CREATE TABLE IF NOT EXISTS ImageHistory (
+        id INTEGER,
+        path TEXT NOT NULL,
+        is_sync INTEGER NOT NULL DEFAULT 0,
+        capture_date DATE,
+        event_date DATE,
+        last_modified DATETIME,
+        location_id INTEGER,
+        version_no INTEGER NOT NULL,
+        is_deleted INTEGER NOT NULL DEFAULT 0,
+        hash TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT (datetime('now')),
+        PRIMARY KEY (id, version_no),
+        FOREIGN KEY (location_id) REFERENCES Location(id)
+      );`,
+      [],
+      () => console.log('✅ ImageHistory table created'),
+      (_, error) => { console.log('❌ Error creating ImageHistory table: ' + error.message); return true; }
+    );
+
+    // Step 3: Create the trigger for versioning
+    txn.executeSql(
+      `DROP TRIGGER IF EXISTS trg_UpdateImageHistory_new;`
+    );
+
+    txn.executeSql(
+      `CREATE TRIGGER trg_UpdateImageHistory_new
+       AFTER UPDATE ON Image
+       BEGIN
+         INSERT INTO ImageHistory (
+           id, path, is_sync, capture_date, event_date, last_modified, location_id,
+           version_no, is_deleted, hash, is_active, created_at
+         )
+         SELECT
+           OLD.id,
+           OLD.path,
+           OLD.is_sync,
+           OLD.capture_date,
+           OLD.event_date,
+           OLD.last_modified,
+           OLD.location_id,
+           IFNULL((SELECT MAX(version_no) FROM ImageHistory WHERE id = OLD.id), 0) + 1,
+           OLD.is_deleted,
+           OLD.hash,
+           0,
+           datetime('now');
+       END;`,
+      [],
+      () => console.log('✅ Trigger created on Image updates'),
+      (_, error) => { console.log('❌ Error creating trigger: ' + error.message); return true; }
+    );
+  });
 }
 
 const InsertImageData = (image) => {
@@ -427,10 +502,30 @@ const getImageData = async (imageId) => {
 
 //person 
 const createPersonTable = async () => {
-  db.transaction((txn) => {
-    // Optional: Drop existing table (only if you don't need existing data)
-    // txn.executeSql(`DROP TABLE IF EXISTS person`);
+  // db.transaction((txn) => {
+  //   // Optional: Drop existing table (only if you don't need existing data)
+  //   // txn.executeSql(`DROP TABLE IF EXISTS person`);
 
+  //   txn.executeSql(
+  //     `CREATE TABLE IF NOT EXISTS Person (
+  //       id INTEGER PRIMARY KEY AUTOINCREMENT,
+  //       name TEXT NOT NULL,
+  //       path TEXT,
+  //       gender TEXT NOT NULL DEFAULT 'U',
+  //       DOB DATE,
+  //       Age INT
+  //     )`,
+  //     [],
+  //     () => {
+  //       console.log('Person table created (with DOB and Age)');
+  //     },
+  //     (txn, error) => {
+  //       console.log('Error creating Person table: ' + error.message);
+  //     }
+  //   );
+  // });
+   db.transaction((txn) => {
+    // Step 1: Create Person table
     txn.executeSql(
       `CREATE TABLE IF NOT EXISTS Person (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -439,16 +534,58 @@ const createPersonTable = async () => {
         gender TEXT NOT NULL DEFAULT 'U',
         DOB DATE,
         Age INT
-      )`,
+      );`,
       [],
-      () => {
-        console.log('Person table created (with DOB and Age)');
-      },
-      (txn, error) => {
-        console.log('Error creating Person table: ' + error.message);
-      }
+      () => console.log('✅ Person table created'),
+      (_, error) => { console.log('❌ Error creating Person table: ' + error.message); return true; }
+    );
+
+    // Step 2: Create PersonHistory table
+    txn.executeSql(
+      `CREATE TABLE IF NOT EXISTS PersonHistory (
+        id INTEGER,
+        name TEXT NOT NULL,
+        path TEXT,
+        gender TEXT NOT NULL DEFAULT 'U',
+        version_no INTEGER NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT (datetime('now')),
+        DOB DATE,
+        Age INT
+      );`,
+      [],
+      () => console.log('✅ PersonHistory table created'),
+      (_, error) => { console.log('❌ Error creating PersonHistory table: ' + error.message); return true; }
+    );
+
+    // Step 3: Drop old trigger if exists
+    txn.executeSql(`DROP TRIGGER IF EXISTS trg_UpdatePersonHistory_new;`);
+
+    // Step 4: Create trigger for versioning
+    txn.executeSql(
+      `CREATE TRIGGER trg_UpdatePersonHistory_new
+       AFTER UPDATE ON Person
+       BEGIN
+         INSERT INTO PersonHistory (
+           id, name, path, gender, version_no, is_active, created_at, DOB, Age
+         )
+         SELECT
+           OLD.id,
+           OLD.name,
+           OLD.path,
+           OLD.gender,
+           IFNULL((SELECT MAX(version_no) FROM PersonHistory WHERE id = OLD.id), 0) + 1,
+           0,
+           datetime('now'),
+           OLD.DOB,
+           OLD.Age;
+       END;`,
+      [],
+      () => console.log('✅ Trigger created on Person update'),
+      (_, error) => { console.log('❌ Error creating Person trigger: ' + error.message); return true; }
     );
   });
+
 };
 
 
@@ -636,16 +773,71 @@ const getAllEvents = async () => {
 
 const createImageEventTable = async () => {
   const database = await db;
+  // await database.transaction(tx => {
+  //   tx.executeSql(`
+  //           CREATE TABLE IF NOT EXISTS imageEvent (
+  //             image_id INTEGER,
+  //             event_id INTEGER,
+  //             PRIMARY KEY (image_id, event_id),
+  //             FOREIGN KEY (image_id) REFERENCES image(id),
+  //             FOREIGN KEY (event_id) REFERENCES event(id)
+  //           );
+  //         `);
+  // });
   await database.transaction(tx => {
+    // Step 1: Create imageEvent table
     tx.executeSql(`
-            CREATE TABLE IF NOT EXISTS imageEvent (
-              image_id INTEGER,
-              event_id INTEGER,
-              PRIMARY KEY (image_id, event_id),
-              FOREIGN KEY (image_id) REFERENCES image(id),
-              FOREIGN KEY (event_id) REFERENCES event(id)
-            );
-          `);
+      CREATE TABLE IF NOT EXISTS imageEvent (
+        image_id INTEGER,
+        event_id INTEGER,
+        PRIMARY KEY (image_id, event_id),
+        FOREIGN KEY (image_id) REFERENCES image(id),
+        FOREIGN KEY (event_id) REFERENCES event(id)
+      );
+    `);
+
+    // Step 2: Create imageEventHistory table
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS imageEventHistory (
+        image_id INTEGER,
+        event_id INTEGER,
+        version_no INTEGER NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT (datetime('now'))
+      );
+    `);
+
+    // Step 3: Drop old trigger if exists
+    tx.executeSql(`DROP TRIGGER IF EXISTS trg_UpdateImageEventHistory;`);
+
+    // Step 4: Create trigger on DELETE
+    tx.executeSql(`
+      CREATE TRIGGER trg_UpdateImageEventHistory
+      AFTER DELETE ON imageEvent
+      BEGIN
+        INSERT INTO imageEventHistory (
+          image_id,
+          event_id,
+          version_no,
+          is_active,
+          created_at
+        )
+        SELECT
+          OLD.image_id,
+          OLD.event_id,
+          IFNULL(
+            (SELECT MAX(version_no)
+             FROM imageEventHistory
+             WHERE image_id = OLD.image_id AND event_id = OLD.event_id),
+            0
+          ) + 1,
+          0,
+          datetime('now');
+      END;
+    `,[],
+      () => console.log('✅ trigger  created on imageevent'),
+      (_, error) => { console.log('❌ Error creating Person table: ' + error.message); return true; }
+    );
   });
 };
 
@@ -1761,7 +1953,8 @@ const getAllSyncImages = () => {
     db.transaction((txn) => {
       // Step 1: Get images + location name
       txn.executeSql(
-        `SELECT Image.*, Location.name AS location_name 
+        `SELECT Image.*, Location.id AS location_id, Location.latitude, Location.longitude, Location.name AS location_name
+ 
          FROM Image 
          LEFT JOIN Location ON Image.location_id = Location.id 
          WHERE Image.is_deleted = 0 AND Image.is_sync = 0`,
@@ -1808,12 +2001,39 @@ const getAllSyncImages = () => {
                       }
 
                       // Final combined result
+                      // resolveImage({
+                      //   ...image,
+                      //   location: image.location_name || '',
+                      //   events,
+                      //   persons,
+                      // });
                       resolveImage({
-                        ...image,
-                        location: image.location_name || '',
-                        events,
-                        persons,
-                      });
+  id: image.id,
+  path: image.path,
+  capture_date: image.capture_date,
+  event_date: image.event_date,
+  hash: image.hash,
+  is_sync: Boolean(image.is_sync),
+  last_modified: image.last_modified,
+
+ location: image.location_name || image.latitude || image.longitude
+  ? [image.location_name || '', image.latitude || 0.0, image.longitude || 0.0]
+  : null,
+
+
+  events,
+
+  persons: persons.map((p, idx) => ({
+    id: idx + 1,          // Fake ID (replace with real if available)
+    name: p.name,
+    path: p.path,
+    gender: p.gender,
+    dob: p.dob ,
+    age: p.age ,
+  })),
+
+});
+
                     },
                     (_, errPer) => {
                       console.log('Error fetching persons:', errPer.message);
@@ -1989,14 +2209,42 @@ const clearAllTables = async () => {
     });
   });
 };
+const getLatestImageVersions = async () => {
+  const database = await db;
 
-export {
+  return new Promise((resolve, reject) => {
+    database.transaction((tx) => {
+      tx.executeSql(
+        `SELECT id, path, MAX(version_no) AS version_no
+         FROM ImageHistory
+         GROUP BY id;`,
+        [],
+        (_, results) => {
+          const rows = results.rows;
+          let latestImages = [];
+
+          for (let i = 0; i < rows.length; i++) {
+            latestImages.push(rows.item(i));
+          }
+
+          resolve(latestImages);
+        },
+        (_, error) => {
+          console.log('❌ Error fetching latest image versions: ', error.message);
+          reject(error);
+        }
+      );
+    });
+  });
+};
+
+export {createTableImage,createPersonTable,createImageEventTable,
   InsertImageData, getAllImageData, DeletetAllData, insertPerson, linkImageToPerson, getPeopleWithImages, getPersonTableColumns,
   getImagesForPerson, insertEvent, getAllEvents, getImageDetails, editDataForMultipleIds, checkIfHashExists, getImageData, getLocationById,
   getEventsByImageId, getImagesGroupedByDate, getDataByDate, groupImagesByLocation, getImagesByLocationId, getImagesGroupedByEvent,
   getImagesByEventId, markImageAsDeleted, getAllLocations, getAllPersonLinks, insertPersonLinkIfNotExists, searchImages,
   getAllPersons, getImagePersonMap, getPersonAndLinkedList, getPersonData, handleUpdateEmbeddings, getAllImages, mergepeople, getAllSyncImages,
-  createLinksIfNotExist,
+  createLinksIfNotExist,getLatestImageVersions,
 
   resetImageTable,clearAllTables
 

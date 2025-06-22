@@ -20,7 +20,6 @@ const Sync = ({ route }) => {
            const person = await getAllPersons();
 const links = await getAllPersonLinks();
 const data = await getAllSyncImages();
-
 // Fetch the linked person data
 const linkrecordsResponse = await fetch(`${baseUrl}/get_linked_person`, {
     method: 'POST',
@@ -71,8 +70,9 @@ console.log("Links",result.links);
 
                     if (existingData) {
                         const { id, last_modified_date } = existingData;
-
+                        console.log(last_modified_date, item.last_modified);
                         if (last_modified_date < item.last_modified) {
+                            console.log("this image has a new record, updating...");
                             const eventIds = [];
 
                             for (const eventName of item.events) {
@@ -85,6 +85,7 @@ console.log("Links",result.links);
                                     console.error(`Error processing event "${eventName}":`, error);
                                 }
                             }
+                            console.log("person here ", item.persons);
                             // Use id in the edit function, or log last_modified_date if needed
                             await editDataForMultipleIds(
                                 id,

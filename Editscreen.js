@@ -148,6 +148,22 @@ const Editscreen = (props) => {
   };
   const currentDateFormatted = formatDate(new Date());
 
+ const formatUTCDateTime = (date) => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+const currentDateTimeFormatted = formatUTCDateTime(new Date());
+
+
+
+
+
   useEffect(() => {
 
     const fetchEvents = async () => {
@@ -317,9 +333,9 @@ const referenceDate = eventDate ? new Date(eventDate) : new Date(currentDateForm
       location,
       selectedEvents,
       latestValue,
-      currentDateFormatted
+      currentDateTimeFormatted
     });
-    var result = editDataForMultipleIds(imageId, persons, selectedEvents, eventDate, location, currentDateFormatted);
+    var result = editDataForMultipleIds(imageId, persons, selectedEvents, eventDate, location,currentDateTimeFormatted);
     // var res= await mergepeople(selectedPerson.id, groupKey);
     console.log(mergeData)
 

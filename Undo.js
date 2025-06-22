@@ -1,17 +1,19 @@
-import React from 'react';
-import { View, StyleSheet, Image, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Image, ScrollView ,Text} from 'react-native';
 import { Button } from 'react-native-paper';
 import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
+import { getLatestImageVersions} from './Databasequeries'; // Adjust the import path as necessary
 
-const imageList = [
-  require('./asset/1.jpeg'),
-  require('./asset/2.jpeg'),
-  require('./asset/3.jpeg'),
-];
 
 const Undo = ({ route }) => {
-  const { data } = route.params || {};
+  const [imageList, setImageList] = useState([]);
+
+  useEffect(() => {
+    getLatestImageVersions().then((data) => {
+      setImageList(data);
+    });
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -19,45 +21,52 @@ const Undo = ({ route }) => {
         <Allcontrols text="Undo Changes" />
       </View>
 
-      {/* Centered Undo All button */}
       <View style={styles.buttonWrapper}>
         <Button
           mode='contained'
           style={styles.button}
           labelStyle={styles.buttonText}
-          onPress={() => { }}>
+          onPress={() => {}}
+        >
           Undo All
         </Button>
       </View>
 
-      {/* Vertical scrolling cards */}
       <ScrollView contentContainerStyle={styles.cardContainer}>
-        {imageList.map((imgSrc, index) => (
-          <View key={index} style={styles.card}>
-            <Image source={imgSrc} style={styles.image} />
-            <View style={styles.cardButtons}>
-              <Button
-                mode="outlined"
-                style={styles.actionButton}
-                labelStyle={styles.actionButtonText}
-                onPress={() => console.log('View clicked')}>
-                View
-              </Button>
-              <Button
-                mode="outlined"
-                style={styles.actionButton}
-                labelStyle={styles.actionButtonText}
-                onPress={() => console.log('Undo clicked')}>
-                Undo
-              </Button>
+        {imageList.length === 0 ? (
+          <Text style={{ textAlign: 'center', marginTop: 20 ,color:colors.dark}}>No history found.</Text>
+        ) : (
+          imageList.map((img, index) => (
+            <View key={index} style={styles.card}>
+              <Image
+                source={{ uri: img.path }}
+                style={styles.image}
+              />
+              <View style={styles.cardButtons}>
+                <Button
+                  mode="outlined"
+                  style={styles.actionButton}
+                  labelStyle={styles.actionButtonText}
+                  onPress={() => console.log('View clicked', img.id)}
+                >
+                  View
+                </Button>
+                <Button
+                  mode="outlined"
+                  style={styles.actionButton}
+                  labelStyle={styles.actionButtonText}
+                  onPress={() => console.log('Undo clicked', img.id)}
+                >
+                  Undo
+                </Button>
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   allControlsContainer: {
     position: 'absolute',

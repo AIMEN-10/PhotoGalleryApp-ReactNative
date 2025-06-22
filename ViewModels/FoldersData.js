@@ -1,7 +1,9 @@
 
 import {
   getPeopleWithImages, getImagesGroupedByDate, groupImagesByLocation, getImagesGroupedByEvent,
-  getAllPersons, getAllImageData, getImagePersonMap, getAllPersonLinks
+  getAllPersons, getAllImageData, getImagePersonMap, getAllPersonLinks,
+
+  createTableImage,createPersonTable,createImageEventTable,
 } from "../Databasequeries";
 
 
@@ -80,6 +82,10 @@ const FoldersData = async (data) => {
     return result;
   }
   else if (value === "Event") {
+  //  const a= await createTableImage();
+  //  const b=await createPersonTable(); 
+  //   const c=await createImageEventTable();
+
     const groupbyeventdata = await getImagesGroupedByEvent();
     return groupbyeventdata;
   }
