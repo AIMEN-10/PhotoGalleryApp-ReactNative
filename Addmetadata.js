@@ -36,9 +36,9 @@ const Addmetadata = ({ route }) => {
       
       </View>
       
-      <View style={styles.cameraNavbarContainer}>
+      {/* <View style={styles.cameraNavbarContainer}>
         <Cameranavbar />
-      </View>
+      </View> */}
 
        </View>
       );

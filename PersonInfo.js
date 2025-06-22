@@ -9,6 +9,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const PersonInfo = ({ route }) => {
   const { imageDetails, screen } = route.params;
+  console.log('Image Details:', imageDetails);
   const navigation = useNavigation();
   const hasSentData = useRef(false);
   const [dates, setDates] = useState({});

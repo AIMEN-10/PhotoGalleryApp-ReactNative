@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Image, Text, StyleSheet, Pressable, PermissionsAndroid, Platform, Alert } from 'react-native';
 import { requestMediaLibraryPermission } from '../Permission';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
-import { getAllImages, InsertImageData, DeletetAllData, insertPerson, linkImageToPerson, checkIfHashExists ,resetImageTable} from '../Databasequeries';
+import { getAllImages, InsertImageData, DeletetAllData, insertPerson, linkImageToPerson, checkIfHashExists, resetImageTable } from '../Databasequeries';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -18,7 +18,7 @@ const ImageData = () => {
     return `${year}-${month}-${day}`;
   };
 
- const loadImages = async () => {
+  const loadImages = async () => {
     return new Promise((resolve) => {
       getAllImages((data) => {
         const paths = data.map(item => ({
@@ -47,7 +47,7 @@ const ImageData = () => {
 
         //   setPhotos(paths); // Set the photos state with the array of objects
         // });
- await loadImages();
+        await loadImages();
 
 
 
@@ -130,7 +130,7 @@ const ImageData = () => {
 
 
   const getAllPhotos = async () => {
-    const resp=resetImageTable();
+    const resp = resetImageTable();
     try {
       const result = await CameraRoll.getPhotos({
         first: 7,
@@ -153,8 +153,7 @@ const ImageData = () => {
             console.log('🔁 Duplicate image skipped (hash already exists):', hash);
             return;
           }
-          else 
-          {
+          else {
             const imageId = await InsertImageData({
               path: uri,
               capture_date: captureDate,

@@ -43,23 +43,23 @@ const Editnavbar = ({ imageId, onModalToggle, onDelete }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const deleteImage = async () => {
-  if (isDeleting) return; // Prevent multiple calls
-  setIsDeleting(true);
+    if (isDeleting) return; // Prevent multiple calls
+    setIsDeleting(true);
 
-  try {
-    const success = await markImageAsDeleted(imageId);
-    if (success) {
-      console.log(`Image ${imageId} marked as deleted`);
-      onDelete?.();
-    } else {
-      console.log("No image found to delete.");
+    try {
+      const success = await markImageAsDeleted(imageId);
+      if (success) {
+        console.log(`Image ${imageId} marked as deleted`);
+        onDelete?.();
+      } else {
+        console.log("No image found to delete.");
+      }
+    } catch (error) {
+      console.log("Error deleting image:", error);
+    } finally {
+      setIsDeleting(false);
     }
-  } catch (error) {
-    console.log("Error deleting image:", error);
-  } finally {
-    setIsDeleting(false);
-  }
-};
+  };
   const showDeletePopup = () => {
     Alert.alert(
       'Delete Options',

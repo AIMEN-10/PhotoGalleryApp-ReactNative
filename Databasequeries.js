@@ -29,7 +29,7 @@ const createTableImage = () => {
   //
   //   }
   // );
-db.transaction((txn) => {
+  db.transaction((txn) => {
     // Step 1: Create the Image table
     txn.executeSql(
       `CREATE TABLE IF NOT EXISTS Image (
@@ -78,27 +78,32 @@ db.transaction((txn) => {
     );
 
     txn.executeSql(
-      `CREATE TRIGGER trg_UpdateImageHistory_new
-       AFTER UPDATE ON Image
-       BEGIN
-         INSERT INTO ImageHistory (
-           id, path, is_sync, capture_date, event_date, last_modified, location_id,
-           version_no, is_deleted, hash, is_active, created_at
-         )
-         SELECT
-           OLD.id,
-           OLD.path,
-           OLD.is_sync,
-           OLD.capture_date,
-           OLD.event_date,
-           OLD.last_modified,
-           OLD.location_id,
-           IFNULL((SELECT MAX(version_no) FROM ImageHistory WHERE id = OLD.id), 0) + 1,
-           OLD.is_deleted,
-           OLD.hash,
-           0,
-           datetime('now');
-       END;`,
+     `CREATE TRIGGER trg_UpdateImageHistory_new
+AFTER UPDATE ON Image
+BEGIN
+  INSERT INTO ImageHistory (
+    id, path, is_sync, capture_date, event_date, last_modified, location_id,
+    version_no, is_deleted, hash, is_active, created_at
+  )
+  SELECT
+    OLD.id,
+    OLD.path,
+    OLD.is_sync,
+    OLD.capture_date,
+    OLD.event_date,
+    OLD.last_modified,
+    OLD.location_id,
+    IFNULL(
+      (SELECT MAX(version_no) FROM ImageHistory WHERE id = OLD.id),
+      0
+    ) + 1,
+    OLD.is_deleted,
+    OLD.hash,
+    0,
+    datetime('now')
+  ;
+END;`,
+
       [],
       () => console.log('✅ Trigger created on Image updates'),
       (_, error) => { console.log('❌ Error creating trigger: ' + error.message); return true; }
@@ -287,8 +292,8 @@ const getImageDetails = async (imageId) => {
                 person_name: row.person_name,
                 gender: row.gender,
                 person_path: row.person_path,
-                DOB:row.DOB,
-                Age:row.Age
+                DOB: row.DOB,
+                Age: row.Age
               });
             }
           }
@@ -333,13 +338,13 @@ const editData = async (imageId, latestValue, selectedEvents, eventDate, locatio
   // 1. Update people
   if (Array.isArray(latestValue)) {
     for (const person of latestValue) {
-      const { name, gender,DOB,Age, personPath } = person;
-      const path = person?.path ?? personPath; 
+      const { name, gender, DOB, Age, personPath } = person;
+      const path = person?.path ?? personPath;
       try {
         await database.transaction(async (tx) => {
           await tx.executeSql(
             'UPDATE person SET name = ?, gender = ?,DOB=?,Age=? WHERE path = ?',
-            [name, gender,DOB,Age, path]
+            [name, gender, DOB, Age, path]
           );
         });
         console.log(`✅ Updated person ${name}`);
@@ -524,7 +529,7 @@ const createPersonTable = async () => {
   //     }
   //   );
   // });
-   db.transaction((txn) => {
+  db.transaction((txn) => {
     // Step 1: Create Person table
     txn.executeSql(
       `CREATE TABLE IF NOT EXISTS Person (
@@ -599,7 +604,7 @@ const insertPerson = async ({ person }) => {
     db.transaction((txn) => {
       txn.executeSql(
         `INSERT INTO person (name, path,gender,DOB,Age) VALUES (?, ?, ?,?,?)`,
-        [person.name, person.path,person.gender || 'U',person.DOB,person.Age],
+        [person.name, person.path, person.gender || 'U', person.DOB, person.Age],
         (t, res) => {
           // If insertion is successful, log the ID and resolve the promise with the personId
           const personId = res.insertId;
@@ -732,7 +737,7 @@ const insertEvent = async (name) => {
               'INSERT INTO Event (name) VALUES (?)',
               [name],
               // (txObj, result) => resolve('Event inserted successfully.'),
-(txObj, result) => {
+              (txObj, result) => {
                 resolve({ message: 'Event inserted successfully.', id: result.insertId });
               },
               (txObj, error) => reject(error)
@@ -812,32 +817,34 @@ const createImageEventTable = async () => {
 
     // Step 4: Create trigger on DELETE
     tx.executeSql(`
-      CREATE TRIGGER trg_UpdateImageEventHistory
-      AFTER DELETE ON imageEvent
-      BEGIN
-        INSERT INTO imageEventHistory (
-          image_id,
-          event_id,
-          version_no,
-          is_active,
-          created_at
-        )
-        SELECT
-          OLD.image_id,
-          OLD.event_id,
-          IFNULL(
-            (SELECT MAX(version_no)
-             FROM imageEventHistory
-             WHERE image_id = OLD.image_id AND event_id = OLD.event_id),
-            0
-          ) + 1,
-          0,
-          datetime('now');
-      END;
-    `,[],
-      () => console.log('✅ trigger  created on imageevent'),
-      (_, error) => { console.log('❌ Error creating Person table: ' + error.message); return true; }
+  CREATE TRIGGER trg_UpdateImageEventHistory
+  AFTER DELETE ON imageEvent
+  BEGIN
+    INSERT INTO imageEventHistory (
+      image_id,
+      event_id,
+      version_no,
+      is_active,
+      created_at
+    )
+    VALUES (
+      OLD.image_id,
+      OLD.event_id,
+      IFNULL(
+        (SELECT MAX(version_no)
+         FROM imageEventHistory
+         WHERE image_id = OLD.image_id AND event_id = OLD.event_id),
+        0
+      ) + 1,
+      0,
+      datetime('now')
     );
+  END;
+`,
+[],
+() => console.log('✅ Trigger created on imageEvent'),
+(_, error) => { console.log('❌ Error creating trigger: ' + error.message); return true; }
+);
   });
 };
 
@@ -1038,7 +1045,7 @@ const insertLocation = async ({ name, latitude = null, longitude = null }) => {
     database.transaction(tx => {
       // Step 1: Check if the location already exists
       tx.executeSql(
-        `SELECT id FROM location WHERE name = ? LIMIT 1`,
+        `SELECT id FROM location WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) LIMIT 1`,
         [name],
         (_, selectResult) => {
           if (selectResult.rows.length > 0) {
@@ -1867,7 +1874,7 @@ const updatePersonWhereEmbedding = async (person, embedding) => {
        DOB = ?,
        Age = ?
        WHERE path = ?`,
-      [person.name,person.gender,person.DOB,person.Age, embedding]
+      [person.name, person.gender, person.DOB, person.Age, embedding]
     );
   });
 };
@@ -1991,7 +1998,7 @@ const getAllSyncImages = () => {
                     (_, resPer) => {
                       const persons = [];
                       for (let k = 0; k < resPer.rows.length; k++) {
-                          const personRow = resPer.rows.item(k);
+                        const personRow = resPer.rows.item(k);
 
                         persons.push({
                           name: personRow.name,
@@ -2008,31 +2015,31 @@ const getAllSyncImages = () => {
                       //   persons,
                       // });
                       resolveImage({
-  id: image.id,
-  path: image.path,
-  capture_date: image.capture_date,
-  event_date: image.event_date,
-  hash: image.hash,
-  is_sync: Boolean(image.is_sync),
-  last_modified: image.last_modified,
+                        id: image.id,
+                        path: image.path,
+                        capture_date: image.capture_date,
+                        event_date: image.event_date,
+                        hash: image.hash,
+                        is_sync: Boolean(image.is_sync),
+                        last_modified: image.last_modified,
 
- location: image.location_name || image.latitude || image.longitude
-  ? [image.location_name || '', image.latitude || 0.0, image.longitude || 0.0]
-  : null,
+                        location: image.location_name || image.latitude || image.longitude
+                          ? [image.location_name || '', image.latitude || 0.0, image.longitude || 0.0]
+                          : null,
 
 
-  events,
+                        events,
 
-  persons: persons.map((p, idx) => ({
-    id: idx + 1,          // Fake ID (replace with real if available)
-    name: p.name,
-    path: p.path,
-    gender: p.gender,
-    dob: p.dob ,
-    age: p.age ,
-  })),
+                        persons: persons.map((p, idx) => ({
+                          id: idx + 1,          // Fake ID (replace with real if available)
+                          name: p.name,
+                          path: p.path,
+                          gender: p.gender,
+                          dob: p.dob,
+                          age: p.age,
+                        })),
 
-});
+                      });
 
                     },
                     (_, errPer) => {
@@ -2179,36 +2186,48 @@ const createLinksIfNotExist = (links) => {
 
 
 const clearAllTables = async () => {
-  
+  const database = await db;
 
-  db.transaction((tx) => {
-    // Disable foreign key constraints temporarily
-    tx.executeSql('PRAGMA foreign_keys = OFF;', [], () => {
-      // Get all user-defined tables
+  return new Promise((resolve, reject) => {
+    database.transaction((tx) => {
+      // 1. Disable foreign key constraints temporarily
+      tx.executeSql('PRAGMA foreign_keys = OFF;');
+
+      // 2. Get all user-defined table names
       tx.executeSql(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';",
         [],
         (tx, results) => {
           const len = results.rows.length;
+
+          // 3. Clear each table one by one
           for (let i = 0; i < len; i++) {
             const tableName = results.rows.item(i).name;
-            tx.executeSql(`DELETE FROM "${tableName}";`);
+            tx.executeSql(`DELETE FROM "${tableName}";`, [], () => {
+              console.log(`🧹 Cleared table: ${tableName}`);
+            });
           }
 
-          // Optionally reset AUTOINCREMENT counters
-          tx.executeSql('DELETE FROM sqlite_sequence;');
+          // 4. Optionally reset AUTOINCREMENT counters
+          tx.executeSql('DELETE FROM sqlite_sequence;', [], () => {
+            console.log('🔁 Autoincrement counters reset.');
+          });
 
-          // Re-enable foreign keys
-          tx.executeSql('PRAGMA foreign_keys = ON;');
-          console.log('All tables cleared successfully.');
+          // 5. Re-enable foreign keys
+          tx.executeSql('PRAGMA foreign_keys = ON;', [], () => {
+            console.log('✅ All tables cleared successfully.');
+            resolve();
+          });
         },
         (tx, error) => {
-          console.error('Failed to fetch table names:', error);
+          console.error('❌ Failed to fetch table names:', error);
+          reject(error);
         }
       );
     });
   });
 };
+
 const getLatestImageVersions = async () => {
   const database = await db;
 
@@ -2226,7 +2245,7 @@ const getLatestImageVersions = async () => {
           for (let i = 0; i < rows.length; i++) {
             latestImages.push(rows.item(i));
           }
-
+          console.log('✅ Latest image versions fetched:', latestImages);
           resolve(latestImages);
         },
         (_, error) => {
@@ -2238,15 +2257,168 @@ const getLatestImageVersions = async () => {
   });
 };
 
-export {createTableImage,createPersonTable,createImageEventTable,
+const getImageDetailsUndo = async (imageId, version) => {
+  console.log('🔍 Fetching historical image details for ID:', imageId, 'version:', version);
+
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      tx.executeSql(
+        `SELECT * FROM ImageHistory WHERE id = ? AND version_no = ?`,
+        [imageId, version],
+        (_, { rows }) => {
+          if (rows.length === 0) {
+            console.error('❌ No image history found');
+            resolve(null);
+            return;
+          }
+
+          const image = rows.item(0);
+          const imageData = {
+            [String(image.id)]: {
+              path: image.path,
+              is_sync: image.is_sync,
+              capture_date: image.capture_date,
+              event_date: image.event_date,
+              last_modified: image.last_modified,
+              hash: image.hash,
+              persons_id: [],
+              event_names: [],
+              location: ['Location not found'],
+            },
+          };
+
+          // PERSONS
+          tx.executeSql(
+            `SELECT ph.*
+             FROM PersonHistory ph
+             INNER JOIN ImagePerson ip ON ph.id = ip.person_id
+             WHERE ip.image_id = ? AND ph.version_no = ?`,
+            [imageId, version],
+            (_, { rows }) => {
+              const persons = [];
+              for (let i = 0; i < rows.length; i++) {
+                const row = rows.item(i);
+                persons.push({
+                  id: row.id,
+                  person_name: row.name,
+                  gender: row.gender,
+                  person_path: row.path,
+                  DOB: row.DOB,
+                  Age: row.Age,
+                });
+              }
+              imageData[String(image.id)].persons_id = persons;
+            }
+          );
+
+          // EVENTS
+          tx.executeSql(
+            `SELECT e.id, e.name
+             FROM Event e
+             INNER JOIN ImageEventHistory ieh ON e.id = ieh.event_id
+             WHERE ieh.image_id = ? AND ieh.version_no = ?`,
+            [imageId, version],
+            (_, { rows }) => {
+              const events = [];
+              for (let i = 0; i < rows.length; i++) {
+                events.push(rows.item(i).id);
+              }
+              imageData[String(image.id)].event_names = events;
+            }
+          );
+
+          // LOCATION
+          if (image.location_id) {
+            tx.executeSql(
+              `SELECT * FROM Location WHERE id = ?`,
+              [image.location_id],
+              (_, { rows }) => {
+                if (rows.length > 0) {
+                  const loc = rows.item(0);
+                  imageData[String(image.id)].location = loc.name;
+
+                }
+              }
+            );
+          }
+
+          // Artificial delay to allow nested queries to complete (not ideal but works)
+          setTimeout(() => {
+            console.log('✅ Image Data (Undo):', imageData);
+            console.log('imagedd',imageData);
+            resolve(imageData);
+          }, 300); // Delay to ensure nested tx queries finish
+        },
+        (_, error) => {
+          console.error('❌ SQL error while fetching ImageHistory:', error.message);
+          reject(error);
+          return true;
+        }
+      );
+    });
+  });
+};
+ const reactivateUndoHistory = (imageId, version, captureDate, lastModified) => {
+  return new Promise((resolve) => {
+    const createdAt = new Date(captureDate || lastModified || new Date());
+    const delta = 5000;
+    const lowerBound = new Date(createdAt.getTime() - delta).toISOString();
+    const upperBound = new Date(createdAt.getTime() + delta).toISOString();
+
+    db.transaction((tx) => {
+      tx.executeSql(
+        `UPDATE ImageHistory SET is_active = 1 WHERE id = ? AND version_no = ?`,
+        [imageId, version],
+        () => console.log('✅ ImageHistory reactivated'),
+        (_, error) => {
+          console.error('❌ Failed to update ImageHistory:', error.message);
+          return true;
+        }
+      );
+
+      tx.executeSql(
+        `UPDATE ImageEventHistory SET is_active = 1
+         WHERE image_id = ? AND created_at BETWEEN ? AND ?`,
+        [imageId, lowerBound, upperBound],
+        () => console.log('✅ ImageEventHistory reactivated'),
+        (_, error) => {
+          console.error('❌ Failed to update ImageEventHistory:', error.message);
+          return true;
+        }
+      );
+
+      tx.executeSql(
+        `UPDATE PersonHistory SET is_active = 1
+         WHERE id IN (
+           SELECT ph.id FROM PersonHistory ph
+           INNER JOIN ImagePerson ip ON ph.id = ip.person_id
+           WHERE ip.image_id = ? AND ph.version_no = ? AND ph.created_at BETWEEN ? AND ?
+         )`,
+        [imageId, version, lowerBound, upperBound],
+        () => {
+          console.log('✅ PersonHistory reactivated');
+          resolve(true);
+        },
+        (_, error) => {
+          console.error('❌ Failed to update PersonHistory:', error.message);
+          resolve(false);
+          return true;
+        }
+      );
+    });
+  });
+};
+
+export {
+  createTableImage, createPersonTable, createImageEventTable,
   InsertImageData, getAllImageData, DeletetAllData, insertPerson, linkImageToPerson, getPeopleWithImages, getPersonTableColumns,
   getImagesForPerson, insertEvent, getAllEvents, getImageDetails, editDataForMultipleIds, checkIfHashExists, getImageData, getLocationById,
   getEventsByImageId, getImagesGroupedByDate, getDataByDate, groupImagesByLocation, getImagesByLocationId, getImagesGroupedByEvent,
   getImagesByEventId, markImageAsDeleted, getAllLocations, getAllPersonLinks, insertPersonLinkIfNotExists, searchImages,
   getAllPersons, getImagePersonMap, getPersonAndLinkedList, getPersonData, handleUpdateEmbeddings, getAllImages, mergepeople, getAllSyncImages,
-  createLinksIfNotExist,getLatestImageVersions,
+  createLinksIfNotExist, getLatestImageVersions, getImageDetailsUndo,reactivateUndoHistory,
 
-  resetImageTable,clearAllTables
+  resetImageTable, clearAllTables
 
 };
 

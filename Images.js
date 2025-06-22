@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable ,BackHandler} from 'react-native';
+import { View, Text, StyleSheet, Pressable, BackHandler } from 'react-native';
 import { Checkbox } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
@@ -9,8 +9,8 @@ import { FlashList } from '@shopify/flash-list';
 import ImageData from './ViewModels/ImageData';
 import Filteredimages from './ViewModels/Filteredimages';
 import FastImage from 'react-native-fast-image';
-import ReactNativeModal from 'react-native-modal';  
-import Editscreen from './Editscreen';  
+import ReactNativeModal from 'react-native-modal';
+import Editscreen from './Editscreen';
 import { useFocusEffect } from '@react-navigation/native';
 
 
@@ -24,13 +24,15 @@ const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) =>
       onLongPress={onLongPress}
     >
       <FastImage
-        source={{ uri: item.path.startsWith('file://') ||
-              item.path.startsWith('content://') ||
-              item.path.startsWith('http')
-              ? item.path
-              : baseUrl + item.path,
-          
-          priority: FastImage.priority.normal }}
+        source={{
+          uri: item.path.startsWith('file://') ||
+            item.path.startsWith('content://') ||
+            item.path.startsWith('http')
+            ? item.path
+            : baseUrl + item.path,
+
+          priority: FastImage.priority.normal
+        }}
         style={styles.image}
         resizeMode={FastImage.resizeMode.cover}
       />
@@ -53,9 +55,9 @@ const Images = ({ route }) => {
   console.log(data);
   let parts = [];
   if (typeof data === 'string' && data.includes(';')) {
-   parts = data.split(';');
+    parts = data.split(';');
 
-} 
+  }
 
 
 
@@ -79,83 +81,86 @@ const Images = ({ route }) => {
     selectedItemsRef.current = new Set(selectedItems);
   }, [selectedItems]);
 
-//   useEffect(() => {
-//     const loadData = async () => {
-//       if (!data) return;
-//       if (Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
-//     setPhotos(data);
+  //   useEffect(() => {
+  //     const loadData = async () => {
+  //       if (!data) return;
+  //       if (Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
+  //     setPhotos(data);
 
-//   console.log('Data is an array of objects');
-// } else {
-//   console.log('Data is not an array of objects');
+  //   console.log('Data is an array of objects');
+  // } else {
+  //   console.log('Data is not an array of objects');
 
-//       const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
-//       // console.log("here:",result);
-//       setPhotos(result);
-//     };
-//   }
-//     loadData();
-//   }, [data, fetchedPhotosFromHook]);
+  //       const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
+  //       // console.log("here:",result);
+  //       setPhotos(result);
+  //     };
+  //   }
+  //     loadData();
+  //   }, [data, fetchedPhotosFromHook]);
 
 
-const reloadData = async () => {
-      if (!data) return;
+  const reloadData = async () => {
+    if (!data) return;
 
-      if (Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
-        setPhotos(data);
+    if (Array.isArray(data) && data.every(item => typeof item === 'object' && item !== null && !Array.isArray(item))) {
+      setPhotos(data);
+    } else {
+      if (result === 'Label') {
+        console.log("IS LABEL");
+      }
+      const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
+      if (Array.isArray(result)) {
+        setPhotos(result);
       } else {
-        const result = data === 'Label' ? fetchedPhotosFromHook : await Filteredimages(data);
-         if (Array.isArray(result)) {
-          setPhotos(result);
-        } else {
-          console.log('Unexpected result from Filteredimages or ImageData:', result);
-          setPhotos([]); // fallback to prevent undefined
+        console.log('Unexpected result from Filteredimages or ImageData:', result);
+        setPhotos([]); // fallback to prevent undefined
+      }
+    }
+  };
+  useFocusEffect(
+    useCallback(() => {
+
+
+      reloadData();
+    }, [data, fetchedPhotosFromHook])
+  );
+
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (selectModeRef.current) {
+          // Exit selection mode instead of navigating back
+          setSelectMode(false);
+          setSelectedItems([]);
+          return true; // prevent default behavior
         }
-      }
-    };
-useFocusEffect(
-  useCallback(() => {
-    
+        return false; // allow default back behavior
+      };
 
-    reloadData();
-  }, [data, fetchedPhotosFromHook])
-);
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
+      return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+    }, [])
+  );
 
-useFocusEffect(
-  useCallback(() => {
-    const onBackPress = () => {
-      if (selectModeRef.current) {
-        // Exit selection mode instead of navigating back
-        setSelectMode(false);
-        setSelectedItems([]);
-        return true; // prevent default behavior
-      }
-      return false; // allow default back behavior
-    };
-
-    BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-    return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-  }, [])
-);
-
-useEffect(() => {
-  selectModeRef.current = selectMode;
-}, [selectMode]);
+  useEffect(() => {
+    selectModeRef.current = selectMode;
+  }, [selectMode]);
 
   const handleImagePress = useCallback(
     // (item) => navigation.navigate('ViewPhoto', { item, data }),
     // [navigation, data]
 
-   (item)=> navigation.navigate('ViewPhoto', {
+    (item) => navigation.navigate('ViewPhoto', {
 
 
 
-  allImages: photos,  // array of image objects
-  currentIndex: item,
-  data:data,
-})
+      allImages: photos,  // array of image objects
+      currentIndex: item,
+      data: data,
+    })
 
   );
 
@@ -189,11 +194,11 @@ useEffect(() => {
     setIsModalVisible(false);  // Close the modal
   };
 
-const refreshData = () => {
-  reloadData(); 
-};
+  const refreshData = () => {
+    reloadData();
+  };
 
-  
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
       <View style={styles.container}>
@@ -208,11 +213,11 @@ const refreshData = () => {
         </View>
 
         <View style={styles.gridContainer}>
-          
-          {photos.length > 0 ?  (
+
+          {photos.length > 0 ? (
             <FlashList
               data={photos}
-              extraData={{ selectMode, selectedItems }} 
+              extraData={{ selectMode, selectedItems }}
               keyExtractor={(item) => item.id?.toString()}
               numColumns={3}
               estimatedItemSize={120}
@@ -251,7 +256,7 @@ const refreshData = () => {
           </Pressable>
 
           {/* EditScreen inside the modal */}
-          <Editscreen 
+          <Editscreen
             imageId={selectedItems} // Pass selectedItems to EditScreen
             closeModal={closeModal}  // Optionally pass closeModal to EditScreen to close it from there
           />

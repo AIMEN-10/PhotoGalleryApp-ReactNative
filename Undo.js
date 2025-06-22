@@ -1,19 +1,46 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState} from 'react';
 import { View, StyleSheet, Image, ScrollView ,Text} from 'react-native';
 import { Button } from 'react-native-paper';
 import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
-import { getLatestImageVersions} from './Databasequeries'; // Adjust the import path as necessary
+import { getLatestImageVersions,getImageDetailsUndo,reactivateUndoHistory,editDataForMultipleIds} from './Databasequeries'; // Adjust the import path as necessary
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 
 const Undo = ({ route }) => {
   const [imageList, setImageList] = useState([]);
-
+  const navigation = useNavigation();
   useEffect(() => {
-    getLatestImageVersions().then((data) => {
+   const a=getLatestImageVersions().then((data) => {
       setImageList(data);
     });
   }, []);
+
+
+  const undoImageEdit = async (imageId, version) => {
+  const imageData = await getImageDetailsUndo(imageId, version);
+
+  if (!imageData) {
+    console.error('No image data found');
+    return;
+  }
+
+  const data = imageData[String(imageId)];
+
+  
+
+  const selectedEvents = data.event_names;  // assuming these are event names
+  const eventDate = data.event_date;
+  const location = data.location; // array like: [name, lat, long]
+  const last_modified = data.last_modified;
+
+  await editDataForMultipleIds(imageId, data.persons, selectedEvents, eventDate, location, last_modified);
+
+  
+    const success = await reactivateUndoHistory(imageId, version, data.capture_date, data.last_modified);
+
+  return success;
+};
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -26,7 +53,15 @@ const Undo = ({ route }) => {
           mode='contained'
           style={styles.button}
           labelStyle={styles.buttonText}
-          onPress={() => {}}
+          onPress={() => {
+  imageList.forEach(async (img) => {
+    const success = await undoImageEdit(img.id, img.version_no);
+    if (success) {
+      console.log(`✅ Undo done for ${img.id}`);
+    }
+  });
+}}
+
         >
           Undo All
         </Button>
@@ -47,7 +82,8 @@ const Undo = ({ route }) => {
                   mode="outlined"
                   style={styles.actionButton}
                   labelStyle={styles.actionButtonText}
-                  onPress={() => console.log('View clicked', img.id)}
+                    onPress={() => navigation.navigate('Undo_details', { imageId: img.id,version: img.version_no })} // Adjust navigation as needed
+
                 >
                   View
                 </Button>
@@ -55,7 +91,17 @@ const Undo = ({ route }) => {
                   mode="outlined"
                   style={styles.actionButton}
                   labelStyle={styles.actionButtonText}
-                  onPress={() => console.log('Undo clicked', img.id)}
+onPress={() => {
+  undoImageEdit(img.id, img.version_no).then((success) => {
+    if (success) {
+      console.log(`✅ Undo successful for image ${img.id}`);
+      // Optionally update UI or show a Snackbar
+    } else {
+      console.error(`❌ Undo failed for image ${img.id}`);
+    }
+  });
+}}
+
                 >
                   Undo
                 </Button>

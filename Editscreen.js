@@ -477,8 +477,26 @@ const referenceDate = eventDate ? new Date(eventDate) : new Date(currentDateForm
                                 // Your logic using selectedPerson and groupKey here
                               } else if (decision.decision === 'different') {
                                 console.log("Different selected!");
-                                // No payload expected here, but you can still log decision
-                              }
+                                 const personDatahere = personData.map((person) => ({
+            person_id: person.id,
+            person_name: person.name || 'abc',
+            gender: person.gender || 'U',
+            person_path: person.personPath || '',
+            DOB: person.DOB || ''
+          }));
+                                
+ Alert.alert(
+          "Add unique Label",
+          "",
+          [
+            {
+              text: "OK",
+ onPress: () => navigation.navigate("PersonInfo", {
+        imageDetails: personDatahere,
+        screen: "edit" // optional if needed
+      })            }
+          ]
+        );                              }
                             } else {
                               console.log("No modal shown or skipped");
                             }

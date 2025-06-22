@@ -245,7 +245,7 @@ console.log("Links",result.links);
                     onPress={senddata}>
                     Sync Now
                 </Button>
-                {/* <Button
+                <Button
                     mode='contained'
                     style={styles.button}
                     labelStyle={styles.buttonText}
@@ -264,7 +264,7 @@ console.log("Links",result.links);
                         );
                     }}>
                     Reset Database
-                    </Button> */}
+                    </Button> 
 
             </View>
         </View>
