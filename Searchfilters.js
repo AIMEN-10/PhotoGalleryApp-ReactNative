@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, BackHandler, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, BackHandler, ScrollView ,TouchableOpacity} from 'react-native';
 import { Checkbox, Button, Chip } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
@@ -13,7 +13,7 @@ import ReactNativeModal from 'react-native-modal';
 import Editscreen from './Editscreen';
 import { useFocusEffect } from '@react-navigation/native';
 import { checkAndUnlinkIfExists } from './Databasequeries';
-import FoldersData from './ViewModels/FoldersData';
+import FoldersData from './ViewModels/FoldersData'; 
 
 
 const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) => {
@@ -52,23 +52,17 @@ const ImageItem = ({ item, selectMode, selectedItems, onPress, onLongPress }) =>
   );
 };
 
-const Images = ({ route }) => {
+const Searchfilters = ({ route }) => {
   const { data } = route.params || {};
-  console.log("dd", data);
-  const [newparts, setnewparts] = useState('');
+  console.log(data);
   let parts = [];
   if (typeof data === 'string' && data.includes(';')) {
     parts = data.split(';');
-    if (typeof parts[0] === 'string' && data.includes('*')) {
-      newpp = parts[0].split('*');
-      setnewparts(newpp);
-      console.log("neww", newpp);
 
-    }
   }
 
-  const buttonval = parts[2];
-  console.log("buttonval", buttonval);
+
+
   const navigation = useNavigation();
 
   const [photos, setPhotos] = useState([]);
@@ -112,6 +106,9 @@ const Images = ({ route }) => {
   const [showComparisonCard, setShowComparisonCard] = useState(true);
   const [faceIndex, setFaceIndex] = useState(0);
   const [face, setface] = useState();
+const [filteredFolders,setfilteredFolders] = useState([]);
+const [activeChip, setActiveChip] = useState('Images'); // Default to images
+const [viewMode, setViewMode] = useState('images'); // 'images' or 'people'
 
   const reloadData = async () => {
     if (!data) return;
@@ -127,42 +124,7 @@ const Images = ({ route }) => {
 
         // const Links = await getAllPersonLinks();
 
-        // console.log("here is the result ");
-        // const pp = result.map(p => p.persons);
-        // console.log("this is pp", pp)
-        // console.log("rr", result)
-        // // console.log("new data",result.map(img => ({
-        // //                 id: img.id,
-        // //                 path: img.path})));
-        // const age = pp[0][0].Age;
-        // console.log("age", age);
-        // if (age >= 0 && age < 13) {
-        //   console.log("childhood")
-        //   if (buttonval == "Childhood") {
-        //     console.log("child")
-        //     setPhotos(result.map(img => ({
-        //       id: img.id,
-        //       path: img.path
-        //     })));
-        //   }
 
-        // }
-        // else if (age >= 13 && age < 19) {
-        //   console.log("teenage");
-        //   if (buttonval = "Teenage") {
-        //     setPhotos(result.map(img => ({
-        //       id: img.id,
-        //       path: img.path
-        //     })));
-        //   }
-        // }
-        // else {
-        //   console.log("adulhood")
-        //   setPhotos(result.map(img => ({
-        //     id: img.id,
-        //     path: img.path
-        //   })));
-        // }
 
         if (result) {
           const matchedFace = [];  // holds the matched face
@@ -193,52 +155,7 @@ const Images = ({ route }) => {
 
       }
       if (Array.isArray(result)) {
-        console.log("here is the result1 ");
-        const pp = result.map(p => p.persons);
-        console.log("this is pp", pp)
-        console.log("rr", result)
-        // console.log("new data",result.map(p=>p.id,p.path))
-
-        console.log("HELLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-
-        const age = parseInt(pp[0][0].Age);
-        console.log("age", typeof(age));
-        console.log("HELLLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
-        if (age >= 0 && age < 13) 
-        {
-          console.log("childhood")
-          if (buttonval == "Childhood") {
-            console.log("child")
-            setPhotos(result.map(img => ({
-              id: img.id,
-              path: img.path,
-
-            })))
-          }
-        }
-
-        else if (age >= 13 && age < 19) {
-          console.log("teenage");
-          if (buttonval = "Teenage") {
-            setPhotos(result.map(img => ({
-              id: img.id,
-              path: img.path,
-
-            })))
-          }
-        }
-        else {
-          console.log("adulhood")
-
-          setPhotos(result.map(img => ({
-            id: img.id,
-            path: img.path,
-
-          })))
-        }
-
-        // parts[3] ==>DOB
-        // setPhotos(result);
+        setPhotos(result);
       } else {
         console.log('Unexpected result from Filteredimages or ImageData:', result);
         setPhotos([]); // fallback to prevent undefined
@@ -360,6 +277,86 @@ const Images = ({ route }) => {
   };
   const displayText =
     parts[2] || (data.includes?.('Label') ? 'Label' : 'Search Results');
+  
+ const handleNavigation = (viewMode, id, name) => {
+  let dataType = '';
+
+  switch (viewMode) {
+    case 'people':
+      dataType = 'Person';
+      break;
+    case 'event':
+      dataType = 'Event';
+      break;
+    case 'location':
+      dataType = 'Location';
+      break;
+    case 'date':
+      dataType = 'Date';
+      break;
+    default:
+      console.log('Unknown view mode:', viewMode);
+  }
+
+  navigation.navigate('Images', { data: `${dataType};${id};${name}` });
+};
+
+
+  const [previousPhotos, setPreviousPhotos] = useState([]);
+const handleChipPress = async (chipText) => {
+  switch (chipText) {
+    case 'People':
+      await saveAndSetView({ mode: 'people', folderType: 'Person', dataKey: 'Names' });
+      break;
+    case 'Event':
+      await saveAndSetView({ mode: 'event', folderType: 'Event', dataKey: null });
+      break;
+    case 'Location':
+      await saveAndSetView({ mode: 'location', folderType: 'Location', dataKey: 'Locations' });
+      break;
+    case 'Date':
+      await saveAndSetView({ mode: 'date', folderType: 'Date', dataKey: 'CaptureDates' });
+      break;
+    case 'Images':
+      setViewMode('images');
+      setPhotos(previousPhotos);
+      break;
+    default:
+      console.log('Unknown chip selected:', chipText);
+  }
+};
+
+
+const saveAndSetView = async ({ mode, folderType, dataKey }) => {
+  setPreviousPhotos(photos); // Save current photos
+
+  const folders = await FoldersData({ data: folderType });
+  console.log('Fetched folders:', folders); // Debugging log
+
+  let filtered = [];
+
+  if (folderType === 'Event') {
+    const selectedEventIds = Object.keys(data.SelectedEvents || {}).filter(
+      id => data.SelectedEvents[id]
+    );
+
+    filtered = folders.filter(folder =>
+      selectedEventIds.includes(String(folder.id)) // Compare as string
+    );
+  } else {
+    const selectedNames = (data?.[dataKey] || []).map(name =>
+      name?.trim().toLowerCase()
+    ).filter(Boolean); // Remove empty strings
+
+    filtered = folders.filter(folder =>
+      selectedNames.includes(folder?.name?.trim().toLowerCase())
+    );
+  }
+
+  console.log('Filtered folders:', filtered); // Debugging log
+  setfilteredFolders(filtered);
+  setViewMode(mode);
+};
 
 
 
@@ -382,15 +379,37 @@ const Images = ({ route }) => {
 
         <View style={styles.gridContainer}>
           <View style={{ alignItems: 'flex-start', marginBottom: 10 }}>
+            {displayText === 'Search Results' && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                <ScrollView horizontal contentContainerStyle={styles.chipRow}>
 
-            {/* {showComparisonCard && faceCardPersons.length >= 1 && face && (
+                  {['Images', 'People', 'Event', 'Location', 'Date'].map((chipText, index) => (
+
+                    <Chip
+                      key={index}
+                      style={styles.chip}
+                      textStyle={{ color: colors.secondary }}
+                      closeIconColor={colors.secondary}
+                       onPress={() => handleChipPress(chipText)} 
+                    >
+                      {chipText}
+                    </Chip>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {showComparisonCard && faceCardPersons.length >= 1 && face && (
 
               <View style={styles.comparisonCard}>
+                {/* Close Icon */}
                 <Pressable style={styles.crossIcon} onPress={() => setShowComparisonCard(false)}>
                   <Text style={styles.crossText}>✕</Text>
                 </Pressable>
 
+                {/* Face Images */}
                 <View style={styles.faceImagesContainer}>
+                  {/* Fixed Face (Face 1 = faceCardPersons[0]) */}
                   {face && (
                     <View key={`face1-${face.id}`} style={styles.faceWrapper}>
                       {console.log(face)}
@@ -410,6 +429,7 @@ const Images = ({ route }) => {
                     </View>
                   )}
 
+                  {/* Changing Face (Face 2 = faceCardPersons[faceIndex]) */}
                   {faceCardPersons[faceIndex] && (
                     <View key={`face2-${faceCardPersons[faceIndex].id}`} style={styles.faceWrapper}>
                       <FastImage
@@ -429,6 +449,7 @@ const Images = ({ route }) => {
                   )}
                 </View>
 
+                {/* Buttons */}
                 <View style={styles.actionButtonsContainer}>
                   <Pressable
                     style={[styles.actionButton, { backgroundColor: '#28a745' }]}
@@ -474,7 +495,7 @@ const Images = ({ route }) => {
                 </View>
               </View>
 
-            )} */}
+            )}
 
             {selectMode && (
               <Button
@@ -494,34 +515,49 @@ const Images = ({ route }) => {
 
             )}
           </View>
-          {photos.length > 0 ? (
-            <FlashList
-              data={photos}
-              extraData={{ selectMode, selectedItems }}
-              keyExtractor={(item) => item.id?.toString()}
-              numColumns={3}
-              estimatedItemSize={120}
-              renderItem={({ item }) => (
-                <ImageItem
-                  item={item}
-                  onPress={handleItemPress}
-                  onLongPress={handleLongPress}
-                  selectedItems={selectedItems}
-                  selectMode={selectMode}
-                />
-              )}
-              columnWrapperStyle={{
-                justifyContent: 'space-between',
-                marginBottom: 15,
-              }}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <Text style={styles.noImagesText}>No images found</Text>
-          )}
+  {['people', 'event', 'location', 'date'].includes(viewMode) && (
+  <View style={styles.grid}>
+    {filteredFolders.map((item, index) => (
+      <FolderCard
+        key={`${item.id ?? 'missing'}-${index}`}
+        item={item}
+        onPress={() => handleNavigation(viewMode, item.id, item.name)}
+      />
+    ))}
+  </View>
+)}
+
+ 
+
+{viewMode === 'images' && (
+  photos.length > 0 ? (
+    <FlashList
+      data={photos}
+      extraData={{ selectMode, selectedItems }}
+      keyExtractor={(item) => item.id?.toString()}
+      numColumns={3}
+      estimatedItemSize={120}
+      renderItem={({ item }) => (
+        <ImageItem
+          item={item}
+          onPress={handleItemPress}
+          onLongPress={handleLongPress}
+          selectedItems={selectedItems}
+          selectMode={selectMode}
+        />
+      )}
+      columnWrapperStyle={{
+        justifyContent: 'space-between',
+        marginBottom: 15,
+      }}
+      showsVerticalScrollIndicator={false}
+    />
+  ) : (
+    <Text style={styles.noImagesText}>No images found</Text>
+  )
+)}
         </View>
       </View>
-
       {/* Modal to show EditScreen */}
       <ReactNativeModal
         isVisible={isModalVisible}
@@ -545,6 +581,25 @@ const Images = ({ route }) => {
     </SafeAreaView>
   );
 };
+
+const FolderCard = ({ item, onPress }) => (
+  <View style={styles.folderborder}>
+    <TouchableOpacity onPress={() => onPress(item.id, item.name)}>
+      <FastImage
+        source={{
+          uri:
+            item.imagePath.startsWith('file://') ||
+            item.imagePath.startsWith('content://') ||
+            item.imagePath.startsWith('http')
+              ? item.imagePath
+              : baseUrl + item.imagePath,
+        }}
+        style={styles.imagefolders}
+      />
+      <Text style={styles.imageName}>{item.name}</Text>
+    </TouchableOpacity>
+  </View>
+);
 
 const styles = StyleSheet.create({
   checkboxOverlay: {
@@ -706,6 +761,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingBottom: 10,
   },
+  //folders
+   grid: {
+    paddingTop: 50,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    minWidth: '100%',
+    padding: 20,
+  },
+//   folderGrid: {
+//   flexDirection: 'row',
+//   flexWrap: 'wrap',
+//   justifyContent: 'space-between',
+//   marginBottom: 15,
+// },
+folderborder: {
+    width: '48%',
+    marginBottom: 20,
+    padding: 15,
+    borderWidth: 3,
+    borderRadius: 15,
+    backgroundColor: '#fff',
+    elevation: 15,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderColor: colors.primary,
+  },
+  imagefolders: {
+    width: 100,
+    height: 80,
+    resizeMode:'contain',
+    borderRadius: 10,
+  },
+  imageName: {
+    color: 'black',
+    textAlign: 'center',
+  },
 });
 
-export default Images;
+export default Searchfilters;

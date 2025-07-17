@@ -5,8 +5,10 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import colors from './theme/colors';
 import { markImageAsDeleted } from './Databasequeries'; // Adjust the import based on your file structure
+import Share from 'react-native-share';
+import { handleShare } from './ViewModels/Helpertoconvertintofile';
 
-const Allcontrols = ({ text, selectMode, selectedItems = [], onBulkEdit,  onRefresh }) => {
+const Allcontrols = ({ text, selectMode, selectedItems = [], onBulkEdit, onRefresh }) => {
   const navigation = useNavigation();
   const [visible, setVisible] = useState(false);
 
@@ -62,18 +64,28 @@ const Allcontrols = ({ text, selectMode, selectedItems = [], onBulkEdit,  onRefr
                   style={[styles.bulkEditButton, { flexDirection: 'row', alignItems: 'center', marginRight: 10 }]}
                   onPress={() => {
                     selectedItems.forEach((id) => markImageAsDeleted(id)); // <-- Call your delete function
-                  onRefresh?.(); 
+                    onRefresh?.();
                   }}
                 >
                   <Icon name="delete" size={20} color={colors.dark} style={{ marginRight: 5 }} />
-                  <Text style={styles.bulkEditButtonText}>Delete</Text>
+
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.bulkEditButton} 
-                // onPress={onBulkEdit}>
-                onPress={() => {
-  onBulkEdit?.(); // perform bulk edit
-  onRefresh?.();  // refresh the view
-}}>
+                <TouchableOpacity
+                  style={[styles.bulkEditButton, { marginRight: 10 }]}
+                  onPress={() => {handleShare(selectedItems)
+                    console.log(selectedItems); 
+                  }} // ✅ Only pass selected images
+                >
+                  <Icon name="share" size={20} color={colors.dark} />
+                </TouchableOpacity>
+
+
+                <TouchableOpacity style={styles.bulkEditButton}
+                  // onPress={onBulkEdit}>
+                  onPress={() => {
+                    onBulkEdit?.(); // perform bulk edit
+                    onRefresh?.();  // refresh the view
+                  }}>
                   <Text style={styles.bulkEditButtonText}>Bulk Edit ({selectedItems.length})</Text>
                 </TouchableOpacity>
               </View>)
@@ -122,7 +134,7 @@ const styles = StyleSheet.create({
   },
   bulkEditButton: {
     backgroundColor: colors.secondary,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     paddingVertical: 8,
     borderRadius: 8,
     marginRight: 10,

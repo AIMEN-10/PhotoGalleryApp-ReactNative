@@ -60,11 +60,14 @@ const Filteredimages = async (data) => {
               }
 
               const result = await response.json();
-              console.log('Response from backend:', result);
+              // console.log('Response from backend:', JSON.stringify(result, null, 2));
+
               const simplifiedImages = result.images.map(img => ({
                 id: img.id,
-                path: img.path
+                path: img.path,
+                persons:img.persons
               }));
+             
               return simplifiedImages;
 
             } catch (error) {
@@ -72,7 +75,7 @@ const Filteredimages = async (data) => {
             }
           };
           const result = await sendPersonGroupData();
-          console.log("r", result)
+
           return result;
 
         case "Event":
@@ -83,6 +86,70 @@ const Filteredimages = async (data) => {
           return await getDataByDate(parts[2]);
         default:
           console.log("No matching condition found for data:", data);
+          // const newparts = parts[0].split('*');
+          const getAllPersonDataAsJson1 = async () => {
+            try {
+              const persons = await getAllPersons();
+              const images = await new Promise((resolve, reject) => {
+                getAllImageData((data) => {
+                  resolve(data);
+                });
+              });
+
+              const image_person_map = await getImagePersonMap();
+              const links = await getAllPersonLinks();
+
+              const jsonData = {
+                person_id: parts[1],
+                persons,
+                images,
+                image_person_map,
+                links,
+              };
+
+              // console.log("Full JSON Data:", JSON.stringify(jsonData, null, 2));
+              return jsonData;
+            } catch (error) {
+              console.error("Error building JSON data:", error);
+            }
+          };
+
+          const sendPersonGroupData1 = async () => {
+            try {
+              const data = await getAllPersonDataAsJson1(); // Your combined data function
+
+              const response = await fetch(`${baseUrl}get_person_images`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+              });
+
+              if (!response.ok) {
+                throw new Error('Server error');
+              }
+
+              const result = await response.json();
+              // console.log('Response from backend:', JSON.stringify(result, null, 2));
+
+              const simplifiedImages = result.images.map(img => ({
+                id: img.id,
+                path: img.path,
+                persons:img.persons
+              }));
+             
+              return simplifiedImages;
+
+            } catch (error) {
+              console.log('Failed to send data:', error);
+            }
+          };
+          const result1 = await sendPersonGroupData1();
+          console.log("resuuuuuuuuu",result1);
+          return result1;
+
+          
           return [];
       }
     } else {

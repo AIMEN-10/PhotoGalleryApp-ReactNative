@@ -5,8 +5,7 @@ import { Checkbox, Chip, Button } from 'react-native-paper';
 import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { getAllEvents, searchImages } from './Databasequeries';
+import { getAllEvents } from './Databasequeries';
 
 const Search = ({ route }) => {
   const { data } = route.params || {};
@@ -15,17 +14,18 @@ const Search = ({ route }) => {
   const [isMaleChecked, setIsMaleChecked] = useState(false);
   const [isFemaleChecked, setIsFemaleChecked] = useState(false);
 
-  // New states for multiple locations and dates
   const [locationInput, setLocationInput] = useState('');
   const [locations, setLocations] = useState([]);
-  const [date, setDate] = useState(new Date());
+
+  const [yearInput, setYearInput] = useState('');
+  const [monthInput, setMonthInput] = useState('');
   const [dates, setDates] = useState([]);
-  const [show, setShow] = useState(false);
 
   const [eventData, setEventData] = useState([]);
   const [selectedEvents, setSelectedEventsState] = useState({});
   const [Age, setAge] = useState();
   const navigation = useNavigation();
+
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -49,34 +49,25 @@ const Search = ({ route }) => {
     }));
   };
 
-  const formatDate = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const addDateFilter = () => {
+    if (!yearInput && !monthInput) return;
 
-  const onChange = (event, selectedDate) => {
-    const currentDate = selectedDate || date;
-    setShow(Platform.OS === 'ios');
-    setDate(currentDate);
-    const formatted = formatDate(currentDate);
-    if (!dates.includes(formatted)) {
-      setDates([...dates, formatted]);
+    let prefix = '';
+    if (yearInput && monthInput) {
+      prefix = `${yearInput}-${String(monthInput).padStart(2, '0')}`; // e.g., '2025-07'
+    } else if (yearInput) {
+      prefix = yearInput;
     }
-  };
 
-  const showDatepicker = () => {
-    setShow(true);
+    if (prefix && !dates.includes(prefix)) {
+      setDates([...dates, prefix]);
+    }
+
+    setYearInput('');
+    setMonthInput('');
   };
 
   const SearchImages = async () => {
-    // console.log('Names:', chips);
-    // console.log('Genders:', isMaleChecked ? 'Male' : '', isFemaleChecked ? 'Female' : '');
-    // console.log('Locations:', locations);
-    // console.log('Capture Dates:', dates);
-    // console.log('Selected Events:', selectedEvents);
-
     const filters = {
       Names: chips,
       Genders: [isMaleChecked ? 'M' : '', isFemaleChecked ? 'F' : ''],
@@ -86,15 +77,6 @@ const Search = ({ route }) => {
       SelectedEvents: selectedEvents,
     };
     navigation.navigate('Searchfilters', { data: filters });
-
-    // searchImages(filters, images => {
-    //   console.log('RESULT IMAGES:', images);
-    //       navigation.navigate('Images', { data: data + ';' +filters + ';' + images.path });
-
-    // });
-
-
-
   };
 
   return (
@@ -159,19 +141,18 @@ const Search = ({ route }) => {
           />
           <Text style={{ fontSize: 18, color: colors.dark }}>Female</Text>
         </View>
-        <View>
-          <Text style={styles.text}>Age</Text>
-          {/* <View style={styles.nameContainer}> */}
-          <TextInput
-            style={styles.input}
-            value={Age}
-            onChangeText={(text) => setAge(text)}
-            placeholder="Enter Age"
-            placeholderTextColor={colors.grey}
-            keyboardType="number-pad"
-          />
 
-        </View>
+        {/* Age */}
+        <Text style={styles.text}>Age</Text>
+        <TextInput
+          style={styles.input}
+          value={Age}
+          onChangeText={(text) => setAge(text)}
+          placeholder="Enter Age"
+          placeholderTextColor={colors.grey}
+          keyboardType="number-pad"
+        />
+
         {/* Events */}
         <Text style={styles.text}>Events</Text>
         {eventData.map(event => (
@@ -185,20 +166,31 @@ const Search = ({ route }) => {
           </View>
         ))}
 
-        {/* Capture Dates */}
-        <Text style={styles.text}>Capture Dates</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
-          <Icon name="event" size={30} color={colors.primary} onPress={showDatepicker} />
-          {show && (
-            <DateTimePicker
-              testID="dateTimePicker"
-              value={date}
-              mode="date"
-              is24Hour={true}
-              display="default"
-              onChange={onChange}
-            />
-          )}
+        {/* Capture Date Filters */}
+        <Text style={styles.text}>Capture Date</Text>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Enter year (e.g. 2025)"
+            keyboardType="numeric"
+            value={yearInput}
+            onChangeText={setYearInput}
+            placeholderTextColor={colors.grey}
+          />
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Enter month (1-12)"
+            keyboardType="numeric"
+            value={monthInput}
+            onChangeText={setMonthInput}
+            placeholderTextColor={colors.grey}
+          />
+          <Icon
+            name="check-circle"
+            size={30}
+            color={colors.primary}
+            onPress={addDateFilter}
+          />
         </View>
 
         <ScrollView horizontal contentContainerStyle={styles.chipRow}>
@@ -270,7 +262,7 @@ const Search = ({ route }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
   },
   text: {
     color: colors.dark,
@@ -331,3 +323,128 @@ const styles = StyleSheet.create({
 });
 
 export default Search;
+
+//db
+
+const searchImages = (filters) => {
+  return new Promise((resolve, reject) => {
+    const {
+      Names = [],
+      Genders = [],
+      Age = [],
+      Locations = [],
+      CaptureDates = [],
+      SelectedEvents = {},
+    } = filters;
+
+    const clean = (arr) =>
+      Array.isArray(arr)
+        ? arr.filter((val) => val && val.toString().trim() !== '')
+        : [];
+
+    const wrapValues = (arr) =>
+      clean(arr)
+        .map((v) => `'${v.toString().replace(/'/g, "''")}'`)
+        .join(',');
+
+    const nameStr = wrapValues(Names);
+    const genderStr = wrapValues(Genders);
+    const ageStr = wrapValues(Age);
+    const locationStr = wrapValues(Locations);
+
+    const eventIds = Object.keys(SelectedEvents).filter((id) => SelectedEvents[id]);
+    const eventStr = wrapValues(eventIds);
+
+    let query = `
+      SELECT DISTINCT i.*
+      FROM Image i
+      JOIN imagePerson ip ON ip.image_id = i.id
+      JOIN person p ON p.id = ip.person_id
+      LEFT JOIN Location l ON l.id = i.location_id
+      LEFT JOIN imageEvent ie ON ie.image_id = i.id
+      LEFT JOIN Event e ON e.id = ie.event_id
+      WHERE i.is_deleted = 0
+    `;
+
+    const personConditions = [];
+
+    // Person Filters
+    if (Names.length) {
+      const likeConditions = clean(Names).map(
+        (name) => `p.name LIKE '%${name.replace(/'/g, "''")}%'`
+      );
+      personConditions.push(`(${likeConditions.join(' OR ')})`);
+    }
+
+    if (genderStr) personConditions.push(`p.gender IN (${genderStr})`);
+    if (ageStr) personConditions.push(`p.Age IN (${ageStr})`);
+
+    // Location Filters
+    if (locationStr) {
+      const likeConditions = clean(Locations).map(
+        (loc) => `l.name LIKE '%${loc.replace(/'/g, "''")}%'`
+      );
+      query += ` AND (${likeConditions.join(' OR ')})`;
+    }
+
+    // Date Filters (prefix match using LIKE)
+    if (CaptureDates.length) {
+      const dateConditions = clean(CaptureDates).map(
+        (prefix) => `i.capture_date LIKE '${prefix.replace(/'/g, "''")}%'`
+      );
+      query += ` AND (${dateConditions.join(' OR ')})`;
+    }
+
+    // Event Filters
+    if (eventStr) {
+      query += ` AND e.id IN (${eventStr})`;
+    }
+
+    // Person or Linked Person Logic — only if person filters exist
+    if (personConditions.length > 0) {
+      const personWhere = personConditions.join(' AND ');
+      query += `
+        AND (
+          (${personWhere})
+          OR p.id IN (
+            SELECT person2_id FROM person_links WHERE person1_id IN (
+              SELECT id FROM person WHERE ${personWhere}
+            )
+            UNION
+            SELECT person1_id FROM person_links WHERE person2_id IN (
+              SELECT id FROM person WHERE ${personWhere}
+            )
+          )
+        )
+      `;
+    }
+
+    query += ` ORDER BY i.capture_date DESC;`;
+
+    // console.log('🔍 Final Query:\n', query);
+
+    db.transaction((tx) => {
+      tx.executeSql(
+        query,
+        [],
+        (_, { rows }) => {
+          const images = [];
+          for (let i = 0; i < rows.length; i++) {
+            images.push({
+              id: rows.item(i).id,
+              path: rows.item(i).path,
+              capture_date: rows.item(i).capture_date,
+              location_id: rows.item(i).location_id,
+            });
+          }
+          resolve(images);
+        },
+        (_, error) => {
+          console.error('❌ SQLite query error:', error);
+          reject(error);
+          return false;
+        }
+      );
+    });
+  });
+};

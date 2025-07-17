@@ -223,7 +223,7 @@ const ImageData = () => {
     return hash.toString();
   };
 
-  return { photos };
+  return { photos, loadImages };
 
 };
 

@@ -30,7 +30,9 @@ import {
   insertPersonLinkIfNotExists,
   getAllPersons,
   handleUpdateEmbeddings,
+  getpersonnames
 } from './Databasequeries';
+import { SelectList } from 'react-native-dropdown-select-list';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -136,24 +138,52 @@ const DraggableFolder = ({ item, dataIsPerson, onDrop, registerLayout, onPress, 
   );
 };
 
-const Folders = ({ route }) => {
+const TaskFolders = ({ route }) => {
   const { data } = route.params || {};
-  console.log("here");
+  console.log("hee")
   const [result, setResult] = useState([]);
   const [layouts, setLayouts] = useState({});
   const navigation = useNavigation();
 
   const scrollRef = useRef(null);
   const scrollY = useSharedValue(0);
+    const [selectedCategory, setSelectedCategory] = useState(null);
 
+// const [arr,setarr]=useState([]);
+const [arr, setArr] = useState([
+        // { key: 1, value: "abc" },
+        // { key: 2, value: "Ali" },
+        // { key: 3, value: "Alia" },
+        //  { key: 4, value: "Student" },
+        //   { key: 5, value: "xyz" },
+    ]);
   const loadData = async () => {
     const folders = await FoldersData({ data });
-    const sortedFolders = (folders || []).sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
-    setResult(sortedFolders);
-  };
+    console.log("folderrs",folders);
+    const mydata=folders?.map(p=>p.name);
+    console.log(mydata);
+    setArr(mydata)
+//     const mymethod=async()=>{
+//         const n=await getpersonnames();
+//         setarr(n.name);
+//     }
+//    mymethod()
 
+   
+    const sortedFolders = (folders || []).sort((a, b) =>
+        
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      
+    );
+    
+    setResult(sortedFolders);
+    
+  };
+mymethod=(value)=>{
+    console.log("value",value)
+setSelectedCategory(value);
+navigation.navigate('Newscreen', { data:value});
+}
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -260,14 +290,33 @@ const Folders = ({ route }) => {
   };
 
   return (
+    
+    
     <View style={styles.container}>
+        <SelectList
+                data={arr}
+                placeholder="Select person"
+                setSelected={(value)=>{mymethod(value)}}
+                search={false}
+                dropdownStyles={{
+            backgroundColor: 'black', 
+            borderRadius: 5, 
+            paddingVertical: 10, 
+          }}
+                boxStyles={{ backgroundColor: 'black' ,color:'black'}}
+                style={{color:'black',backgroundColor:'black'}}
+                save="value"
+            />
       <Animated.ScrollView
         ref={scrollRef}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
       >
         <View style={styles.grid}>
+
           {result.map((item, index) => (
+            
+
             <DraggableFolder
               key={`${item.id ?? 'missing'}-${index}`}
               item={item}
@@ -280,8 +329,13 @@ const Folders = ({ route }) => {
           ))}
         </View>
       </Animated.ScrollView>
+        
     </View>
-  );
+    
+  )
+  
+
+
 };
 
 const styles = StyleSheet.create({
@@ -326,4 +380,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Folders;
+export default TaskFolders;

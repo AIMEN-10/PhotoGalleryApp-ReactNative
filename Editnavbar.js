@@ -203,7 +203,7 @@ const Editnavbar = ({ imageId, onModalToggle, onDelete }) => {
           { name: 'Edit', icon: 'edit' },
           { name: 'Details', icon: 'list' },
           { name: 'Delete', icon: 'delete', isDelete: true },
-          { name: 'Info', icon: 'info' },
+          // { name: 'Info', icon: 'info' },
         ].map(({ name, icon, isDelete }) => (
           <Tab.Screen
             key={name}

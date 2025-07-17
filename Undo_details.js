@@ -3,7 +3,7 @@ import {
   View, Text, Image, SafeAreaView, StyleSheet, ScrollView,
 } from 'react-native';
 import colors from './theme/colors';
-import { getImageDetailsUndo } from './Databasequeries'; // cleaned unused imports
+import { getImageDetailsUndo ,getAllImageHistoryWithEvents} from './Databasequeries'; // cleaned unused imports
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 
@@ -21,6 +21,7 @@ const[Allperson,setAllperson]=useState([]);
         if (!imageId || !version) return;
 
         const imageDataMap = await getImageDetailsUndo(imageId, version);
+        // const imageDataMap = await getAllImageHistoryWithEvents();
         console.log('Fetched image data:', imageDataMap);
 
         const imageData = imageDataMap?.[imageId.toString()];
@@ -82,7 +83,7 @@ setAllperson(imageData.persons_id || []);
         {Array.isArray(imageDetails.event_names) && imageDetails.event_names.length > 0 ? (
           imageDetails.event_names.map((item, index) => (
             <View key={index} style={styles.eventItem}>
-              <Text style={styles.eventText}>• {item}</Text>
+              <Text style={styles.eventText}>• {item.name}</Text>
             </View>
           ))
         ) : (

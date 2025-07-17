@@ -3,7 +3,9 @@ import { View, StyleSheet, Image, ScrollView ,Text} from 'react-native';
 import { Button } from 'react-native-paper';
 import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
-import { getLatestImageVersions,getImageDetailsUndo,reactivateUndoHistory,editDataForMultipleIds} from './Databasequeries'; // Adjust the import path as necessary
+import { getLatestImageVersions,getImageDetailsUndo,reactivateUndoHistory,editDataForMultipleIds,
+  clearhistory
+} from './Databasequeries'; // Adjust the import path as necessary
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 
@@ -29,7 +31,8 @@ const Undo = ({ route }) => {
 
   
 
-  const selectedEvents = data.event_names;  // assuming these are event names
+const selectedEvents = data.event_names.map(event => event.id);
+  console.log('Selected Events:', selectedEvents);
   const eventDate = data.event_date;
   const location = data.location; // array like: [name, lat, long]
   const last_modified = data.last_modified;
@@ -66,7 +69,12 @@ const Undo = ({ route }) => {
           Undo All
         </Button>
       </View>
-
+<Button
+          mode='contained'
+          style={styles.button}
+          labelStyle={styles.buttonText}
+          onPress={clearhistory}
+          >Clear</Button>
       <ScrollView contentContainerStyle={styles.cardContainer}>
         {imageList.length === 0 ? (
           <Text style={{ textAlign: 'center', marginTop: 20 ,color:colors.dark}}>No history found.</Text>

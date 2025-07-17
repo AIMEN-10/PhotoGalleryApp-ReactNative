@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import {View,Image, PermissionsAndroid, Platform } from 'react-native';
+import { View, Image, PermissionsAndroid, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Addmetadata from './Addmetadata';
+import { LogBox } from 'react-native';
 import ViewPhoto from './ViewPhoto';
 import Images from './Images';
 import Folders from './Folders';
@@ -27,133 +28,154 @@ import colors from './theme/colors';
 import Bottomnavigation from './Bottomnavigation';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
-import { Provider as PaperProvider } from 'react-native-paper'; 
+import { Provider as PaperProvider, Searchbar } from 'react-native-paper';
 import { enableScreens } from 'react-native-screens';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MultipleEvents from './MultipleEvents';
-
+import TaskFolders from './TaskFolders';
+import Addmetadatatask from './Addmetadatatask';
 import Drag from './Drag';
+import Searchfilters from './Searchfilters';
+import Newscreen from './Newscreen';
 
-
-
+LogBox.ignoreAllLogs(true); // Ignore all log notifications
 const MainStack = () => (
-<PaperProvider>
-  <Stack.Navigator>
-     <Stack.Screen 
-      name="navbar" 
-      component={Bottomnavigation} 
-      options={{ headerShown: false }} 
-    />
-    <Stack.Screen 
-      name="secondnavbar" 
-      component={Editnavbar} 
-      options={{ headerShown: false }} 
-    />
-     <Stack.Screen 
-      name="ViewPhoto" 
-      component={ViewPhoto} 
-      options={{ headerShown: false, lazy: true }} 
-    />
-    <Stack.Screen 
-    
-      name="Gallery" 
-      component={Addmetadata} 
-      options={{ headerShown: false }} 
-    />
-    
-    <Stack.Screen 
-      name="Folders" 
-      component={Folders} 
-      options={{ headerShown: false, lazy: true  }} 
-    />
-    <Stack.Screen 
-      name="Images" 
-      component={Images} 
-      options={{ headerShown: false , lazy: true }} 
-    />
-   
-    <Stack.Screen 
-      name="Search" 
-      component={Search} 
-      options={{ headerShown: false, lazy: true }} 
-    />
-    <Stack.Screen 
-      name="Sync" 
-      component={Sync} 
-      options={{ headerShown: false, lazy: true }} 
-    />
-     <Stack.Screen 
-      name="Undo" 
-      component={Undo} 
-      options={{ headerShown: false, lazy: true }} 
-    />
-    <Stack.Screen 
-      name="Undo_details" 
-      component={Undo_details} 
-      options={{ headerShown: false, lazy: true }} 
-    />
-    <Stack.Screen 
-      name="Edit" 
-      component={Editscreen} 
-      options={{ headerShown: false }} 
-    />
-    
-    <Stack.Screen name="PersonInfo" 
-    component={PersonInfo} 
-    options={{ headerShown: false }} 
-    />
-     <Stack.Screen name="MultipleEvents" 
-    component={MultipleEvents} 
-    options={{ headerShown: false }} 
-    />
-       <Stack.Screen
-  name="EditModal"
-  component={Editscreen}
-  options={{
-    presentation: 'modal', // Transparent background for modal
-    headerShown: false, // Hide the header
-    cardStyle: {
-      margintop:50,
-      padding: 50, 
-    },
-    cardStyleInterpolator: ({ current, layouts }) => {
-      return {
-        cardStyle: {
-          // Slide from bottom with translation
-          transform: [
-            {
-              translateY: current.progress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [layouts.screen.height, 0], // Slide from bottom
-              }),
-            },
-          ],
-          opacity: current.progress, // Fade-in effect as the modal slides
-          backgroundColor: 'transparent', // Ensure background is transparent
-        },
-      };
-    },
-  }}
-/>
+  <PaperProvider>
+    <Stack.Navigator>
+      <Stack.Screen
+        name="navbar"
+        component={Bottomnavigation}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="secondnavbar"
+        component={Editnavbar}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ViewPhoto"
+        component={ViewPhoto}
+        options={{ headerShown: false, lazy: true }}
+      />
+      <Stack.Screen
 
-    
-     {/* <Stack.Screen 
+        name="Gallery"
+        component={Addmetadata}
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="Folders"
+        component={Folders}
+        options={{ headerShown: false, lazy: true }}
+      />
+      <Stack.Screen
+        name="Images"
+        component={Images}
+        options={{ headerShown: false, lazy: true }}
+      />
+      <Stack.Screen
+        name="TaskFolders"
+        component={TaskFolders}
+        options={{ headerShown: false, lazy: true }}
+      />
+
+      <Stack.Screen
+        name="Search"
+        component={Search}
+        options={{ headerShown: false, lazy: true }}
+      />
+      <Stack.Screen
+        name="Sync"
+        component={Sync}
+        options={{ headerShown: false, lazy: true }}
+      />
+      <Stack.Screen
+        name="Undo"
+        component={Undo}
+        options={{ headerShown: false, lazy: true }}
+      />
+      <Stack.Screen
+        name="Undo_details"
+        component={Undo_details}
+        options={{ headerShown: false, lazy: true }}
+      />
+      <Stack.Screen
+        name="Edit"
+        component={Editscreen}
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen name="PersonInfo"
+        component={PersonInfo}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="Newscreen"
+        component={Newscreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="MultipleEvents"
+        component={MultipleEvents}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Searchfilters" 
+        component={Searchfilters}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Addmetadatatask" 
+        component={Addmetadatatask}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="EditModal"
+        component={Editscreen}
+        options={{
+          presentation: 'modal', // Transparent background for modal
+          headerShown: false, // Hide the header
+          cardStyle: {
+            margintop: 50,
+            padding: 50,
+          },
+          cardStyleInterpolator: ({ current, layouts }) => {
+            return {
+              cardStyle: {
+                // Slide from bottom with translation
+                transform: [
+                  {
+                    translateY: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [layouts.screen.height, 0], // Slide from bottom
+                    }),
+                  },
+                ],
+                opacity: current.progress, // Fade-in effect as the modal slides
+                backgroundColor: 'transparent', // Ensure background is transparent
+              },
+            };
+          },
+        }}
+      />
+
+
+      {/* <Stack.Screen 
           name="Placeholder" 
           component={PlaceholderScreen} 
           options={{ headerShown: false }} 
         /> */}
-    
-  </Stack.Navigator>
+
+    </Stack.Navigator>
   </PaperProvider>
 );
 const App = () => {
   const Stack = createNativeStackNavigator();
-  global.baseUrl = 'http://192.168.100.22:5000/';
+  global.baseUrl = 'http://192.168.43.155:5000/';
 
   // useEffect(() => {
   //   requestImagePermission();
   // }, []);
-  
+
   // const requestImagePermission = async () => {
   //   try {
   //     if (Platform.OS === 'android') {
@@ -161,12 +183,12 @@ const App = () => {
   //         const hasImages = await PermissionsAndroid.check(
   //           PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
   //         );
-  
+
   //         if (!hasImages) {
   //           const granted = await PermissionsAndroid.request(
   //             PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
   //           );
-  
+
   //           if (granted === PermissionsAndroid.RESULTS.GRANTED) {
   //             console.log('Image permission granted');
   //           } else {
@@ -180,12 +202,12 @@ const App = () => {
   //         const hasStorage = await PermissionsAndroid.check(
   //           PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
   //         );
-  
+
   //         if (!hasStorage) {
   //           const granted = await PermissionsAndroid.request(
   //             PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
   //           );
-  
+
   //           if (granted === PermissionsAndroid.RESULTS.GRANTED) {
   //             console.log('Storage permission granted');
   //           } else {
@@ -200,20 +222,20 @@ const App = () => {
   //     console.warn('Permission error:', err);
   //   }
   // };
- 
-  
+
+
   return (
-    <GestureHandlerRootView  style={{ flex: 1 }}>
-    <NavigationContainer >
-  <MainStack />
-  
-</NavigationContainer>
-</GestureHandlerRootView>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer >
+        <MainStack />
+
+      </NavigationContainer>
+    </GestureHandlerRootView>
 
 
     // <NavigationContainer>
     //    <Stack.Navigator >
-      
+
     //      <Stack.Screen 
     //       name="SignIn" 
     //       component={Signup} 
@@ -224,13 +246,13 @@ const App = () => {
     //       component={Login2} 
     //       options={{ headerShown: false }} // Hides the header for this screen
     //     />
-        
+
     //       <Stack.Screen name="Home" component={Home} />
     //    </Stack.Navigator>
     // </NavigationContainer>
-    
+
     //Removed the unnecessary View wrapper here
-   
+
     // <NavigationContainer>
     //   <Stack.Navigator >
     //     <Stack.Screen 
@@ -257,14 +279,14 @@ const App = () => {
     // </NavigationContainer>
 
 
-   
-  //   <Addmetadata/>
-  //   <SafeAreaProvider>
-  //   <Editnavbar />
-  // </SafeAreaProvider>
-   //<Editscreen></Editscreen>
-  //<Test/>
-  //<Location/>
+
+    //   <Addmetadata/>
+    //   <SafeAreaProvider>
+    //   <Editnavbar />
+    // </SafeAreaProvider>
+    //<Editscreen></Editscreen>
+    //<Test/>
+    //<Location/>
   );
 };
 

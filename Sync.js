@@ -5,194 +5,208 @@ import colors from './theme/colors';
 import Allcontrols from './Allcontrols';
 import { SvgXml } from 'react-native-svg';
 import SyncLogo from './src/images/sync_logo.svg';
-import { getAllSyncImages, getImageDetails, editDataForMultipleIds, checkIfHashExists, insertEvent, linkImageToPerson, insertPerson,
-     InsertImageData, getAllPersons, getAllPersonLinks ,createLinksIfNotExist,clearAllTables} from './Databasequeries';
+import {
+    getAllSyncImages, getImageDetails, editDataForMultipleIds, checkIfHashExists, insertEvent, linkImageToPerson, insertPerson,
+    InsertImageData, getAllPersons, getAllPersonLinks, createLinksIfNotExist, clearAllTables
+} from './Databasequeries';
 import ImageResizer from 'react-native-image-resizer';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
 
 import RNFS from 'react-native-fs'; // for local file handling
 import { requestMediaLibraryPermission } from './Permission';
-
+import TaskFolders from './TaskFolders';
+import Folders from './Folders';
+import { useNavigation } from '@react-navigation/native';
+import Addmetadatatask from './Addmetadatatask';
 const Sync = ({ route }) => {
+
     const { data } = route.params || {};
+     const navigation = useNavigation();
+   
+    const taskdata =()=>{
+
+        // <TaskFolders route={{ params:  "Person"  }} />
+        navigation.navigate('Addmetadatatask', { data: "Person" });
+
+    }
     const senddata = async () => {
         try {
-           const person = await getAllPersons();
-const links = await getAllPersonLinks();
-const data = await getAllSyncImages();
-// Fetch the linked person data
-const linkrecordsResponse = await fetch(`${baseUrl}/get_linked_person`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ person, links })
-});
+            const person = await getAllPersons();
+            const links = await getAllPersonLinks();
+            const data = await getAllSyncImages();
+            // Fetch the linked person data
+            const linkrecordsResponse = await fetch(`${baseUrl}/get_linked_person`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ person, links })
+            });
 
-const linkrecords = await linkrecordsResponse.json();
-// console.log('Link records:', linkrecords);
+            const linkrecords = await linkrecordsResponse.json();
+            // console.log('Link records:', linkrecords);
 
-// 🔧 Transform data: embed relevant `links` inside each image object
-const dataWithLinks = data.map(image => {
-    const facePaths = image.persons?.map(p => p.path) || [];
+            // 🔧 Transform data: embed relevant `links` inside each image object
+            const dataWithLinks = data.map(image => {
+                const facePaths = image.persons?.map(p => p.path) || [];
 
-    const imageLinks = {};
-    facePaths.forEach(facePath => {
-        imageLinks[facePath] = linkrecords.links?.[facePath] || [];
-    });
+                const imageLinks = {};
+                facePaths.forEach(facePath => {
+                    imageLinks[facePath] = linkrecords.links?.[facePath] || [];
+                });
 
-    return {
-        ...image,
-        links: imageLinks
-    };
-});
+                return {
+                    ...image,
+                    links: imageLinks
+                };
+            });
 
-// ✅ Send transformed data directly (as a list)
-const response = await fetch(`${baseUrl}/get_unsync_images_new`, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(dataWithLinks)  // ✅ send the correct format
-});
+            // ✅ Send transformed data directly (as a list)
+            const response = await fetch(`${baseUrl}/get_unsync_images_new`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dataWithLinks)  // ✅ send the correct format
+            });
 
-const result = await response.json();
-console.log('API response:', result);
-console.log("Links",result.links);
+            const result = await response.json();
+            console.log('API response:', result);
+            console.log("Links", result.links);
 
 
 
             for (const item of result.images) {
-                    const path = `${baseUrl}images/${item.path}`;
-                    console.log(path);
+                const path = `${baseUrl}images/${item.path}`;
+                console.log(path);
 
-                    const existingData = await checkIfHashExists(item.hash);
+                const existingData = await checkIfHashExists(item.hash);
 
-                    if (existingData) {
-                        const { id, last_modified_date } = existingData;
-                        console.log(last_modified_date, item.last_modified);
-                        if (last_modified_date < item.last_modified) {
-                            console.log("this image has a new record, updating...");
-                            const eventIds = [];
+                if (existingData) {
+                    const { id, last_modified_date } = existingData;
+                    console.log(last_modified_date, item.last_modified);
+                    if (last_modified_date < item.last_modified) {
+                        console.log("this image has a new record, updating...");
+                        const eventIds = [];
 
-                            for (const eventName of item.events) {
-                                try {
-                                    const result = await insertEvent(eventName.name); // returns { message, id }
-                                    if (result?.id != null) {
-                                        eventIds.push(result.id);
-                                    }
-                                } catch (error) {
-                                    console.error(`Error processing event "${eventName}":`, error);
+                        for (const eventName of item.events) {
+                            try {
+                                const result = await insertEvent(eventName.name); // returns { message, id }
+                                if (result?.id != null) {
+                                    eventIds.push(result.id);
                                 }
+                            } catch (error) {
+                                console.error(`Error processing event "${eventName}":`, error);
                             }
-                            console.log("person here ", item.persons);
-                            // Use id in the edit function, or log last_modified_date if needed
-                            await editDataForMultipleIds(
-                                id,
-                                item.persons,
-                                eventIds,
-                                item.event_date,
-                                item.location?.name ?? null,
-                                item.currentDateFormatted
-
-                            );
-
-                            // Optionally use last_modified_date if needed
-                            console.log(`Last modified date: ${last_modified_date}`);
                         }
-                        else {
-                            console.log("this image has the latest record ");
-                        }
+                        console.log("person here ", item.persons);
+                        // Use id in the edit function, or log last_modified_date if needed
+                        await editDataForMultipleIds(
+                            id,
+                            item.persons,
+                            eventIds,
+                            item.event_date,
+                            item.location?.name ?? null,
+                            item.currentDateFormatted
+
+                        );
+
+                        // Optionally use last_modified_date if needed
+                        console.log(`Last modified date: ${last_modified_date}`);
                     }
                     else {
-                        // Download, resize, save image and metadata
-                        try {
-                            const hasPermission = await requestMediaLibraryPermission();
-                            if (!hasPermission) {
-                                Alert.alert("Permission Denied", "Media access permission is required.");
-                                continue; // Skip this image
-                            }
-                              console.log('CameraRoll object:', CameraRoll);
+                        console.log("this image has the latest record ");
+                    }
+                }
+                else {
+                    // Download, resize, save image and metadata
+                    try {
+                        const hasPermission = await requestMediaLibraryPermission();
+                        if (!hasPermission) {
+                            Alert.alert("Permission Denied", "Media access permission is required.");
+                            continue; // Skip this image
+                        }
+                        console.log('CameraRoll object:', CameraRoll);
 
-                            // 1. Download the image and save to cache
-                            const randomStr = Math.random().toString(36).substring(2, 8); // 6-character random string
-                            const uniqueFilename = `image_${Date.now()}_${randomStr}.jpg`;
-                            const downloadPath = `${RNFS.CachesDirectoryPath}/${uniqueFilename}`;
-                            const download = await RNFS.downloadFile({
-                                fromUrl: path,
-                                toFile: downloadPath,
-                            }).promise;
+                        // 1. Download the image and save to cache
+                        const randomStr = Math.random().toString(36).substring(2, 8); // 6-character random string
+                        const uniqueFilename = `image_${Date.now()}_${randomStr}.jpg`;
+                        const downloadPath = `${RNFS.CachesDirectoryPath}/${uniqueFilename}`;
+                        const download = await RNFS.downloadFile({
+                            fromUrl: path,
+                            toFile: downloadPath,
+                        }).promise;
 
-                            if (download.statusCode !== 200) throw new Error("Image download failed");
+                        if (download.statusCode !== 200) throw new Error("Image download failed");
 
-                            // 2. Resize the image
-                            const resizedImage = await ImageResizer.createResizedImage(
-                                `file://${downloadPath}`,
-                                800, 600,
-                                'JPEG', 80
-                            );
+                        // 2. Resize the image
+                        const resizedImage = await ImageResizer.createResizedImage(
+                            `file://${downloadPath}`,
+                            800, 600,
+                            'JPEG', 80, 0
+                        );
 
-                            // 3. Save resized image to gallery
-                            const savedPath = await CameraRoll.save(resizedImage.uri, { type: 'photo' });
+                        // 3. Save resized image to gallery
+                        const savedPath = await CameraRoll.save(resizedImage.uri, { type: 'photo' });
 
-                            // 4. Store in database
-                            const imageId = await InsertImageData({
-                                path: savedPath,
-                                capture_date: item.capture_date,
-                                last_modified: item.last_modified,
-                                hash: item.hash,
-                            });
-                            console.log('🖼️ Image inserted with ID:', imageId);
+                        // 4. Store in database
+                        const imageId = await InsertImageData({
+                            path: savedPath,
+                            capture_date: item.capture_date,
+                            last_modified: item.last_modified,
+                            hash: item.hash,
+                        });
+                        console.log('🖼️ Image inserted with ID:', imageId);
 
-                            // 5. Insert persons and link
-                            for (const person of item.persons) {
-                                try {
-                                    const personId = await insertPerson({ person });
-                                    console.log('👤 Person inserted with ID:', personId);
+                        // 5. Insert persons and link
+                        for (const person of item.persons) {
+                            try {
+                                const personId = await insertPerson({ person });
+                                console.log('👤 Person inserted with ID:', personId);
 
-                                    if (personId) {
-                                        await linkImageToPerson({
-                                            imageId: imageId,
-                                            personId: personId,
-                                        });
-                                        console.log('🔗 Image linked to person:', personId, imageId);
-                                    }
-                                } catch (error) {
-                                    console.log('❌ Error inserting person:', error);
+                                if (personId) {
+                                    await linkImageToPerson({
+                                        imageId: imageId,
+                                        personId: personId,
+                                    });
+                                    console.log('🔗 Image linked to person:', personId, imageId);
                                 }
+                            } catch (error) {
+                                console.log('❌ Error inserting person:', error);
                             }
-
-
-                            const eventIds = [];
-
-                            for (const eventName of item.events) {
-                                try {
-                                    const result = await insertEvent(eventName.name); // returns { message, id }
-                                    console.log('result', result);
-                                    if (result?.id != null) {
-                                        eventIds.push(result.id);
-                                    }
-                                } catch (error) {
-                                    console.error(`Error processing event "${eventName}":`, error);
-                                }
-                            }
-                            // 6. Call editDataForMultipleIds
-                            await editDataForMultipleIds(
-                                imageId,
-                                item.persons,
-                                eventIds,
-                                item.event_date,
-                                item.location?.name ?? null,
-                                item.currentDateFormatted
-                            );
-
-                            Alert.alert("Success", "Image saved and path stored.");
-                        } catch (error) {
-                            console.error("Process failed:", error);
-                            Alert.alert("Error", error.message);
                         }
 
+
+                        const eventIds = [];
+
+                        for (const eventName of item.events) {
+                            try {
+                                const result = await insertEvent(eventName.name); // returns { message, id }
+                                console.log('result', result);
+                                if (result?.id != null) {
+                                    eventIds.push(result.id);
+                                }
+                            } catch (error) {
+                                console.error(`Error processing event "${eventName}":`, error);
+                            }
+                        }
+                        // 6. Call editDataForMultipleIds
+                        await editDataForMultipleIds(
+                            imageId,
+                            item.persons,
+                            eventIds,
+                            item.event_date,
+                            item.location?.name ?? null,
+                            item.currentDateFormatted
+                        );
+
+                        Alert.alert("Success", "Image saved and path stored.");
+                    } catch (error) {
+                        console.error("Process failed:", error);
+                        Alert.alert("Error", error.message);
                     }
+
+                }
 
                 // console.log(`ID: ${item.id}`);
                 // console.log(`Capture Date: ${item.capture_date}`);
@@ -207,12 +221,12 @@ console.log("Links",result.links);
                 // item.events.forEach((event, index) => {
                 //     console.log(`  Event ${index + 1}:`, event);
                 // });
-                
+
                 console.log('---');
             }
             createLinksIfNotExist(result.links)
-  .then(() => console.log('✅ Done linking!'))
-  .catch((e) => console.log('❌ Failed:', e));
+                .then(() => console.log('✅ Done linking!'))
+                .catch((e) => console.log('❌ Failed:', e));
 
         }
         catch (error) {
@@ -245,7 +259,14 @@ console.log("Links",result.links);
                     onPress={senddata}>
                     Sync Now
                 </Button>
-                <Button
+                {/* <Button
+                    mode='contained'
+                    style={styles.button}
+                    labelStyle={styles.buttonText}
+                    onPress={taskdata}>
+                    Task
+                </Button> */}
+               {/* <Button
                     mode='contained'
                     style={styles.button}
                     labelStyle={styles.buttonText}
@@ -264,7 +285,7 @@ console.log("Links",result.links);
                         );
                     }}>
                     Reset Database
-                    </Button> 
+                </Button>*/}
 
             </View>
         </View>

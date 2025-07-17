@@ -78,7 +78,7 @@ const createTableImage = () => {
     );
 
     txn.executeSql(
-     `CREATE TRIGGER trg_UpdateImageHistory_new
+      `CREATE TRIGGER trg_UpdateImageHistory_new
 AFTER UPDATE ON Image
 BEGIN
   INSERT INTO ImageHistory (
@@ -100,9 +100,9 @@ BEGIN
     OLD.is_deleted,
     OLD.hash,
     0,
-    datetime('now')
-  ;
+    datetime('now');
 END;`,
+
 
       [],
       () => console.log('✅ Trigger created on Image updates'),
@@ -180,7 +180,7 @@ const getAllImageData = (callback) => {
 
 const getAllImages = (callback) => {
   const imageData = [];
-
+  console.log("abc here");
   db.transaction((txn) => {
     txn.executeSql(
       `SELECT *
@@ -331,9 +331,8 @@ const editDataForMultipleIds = async (imageIds, latestValue, selectedEvents, eve
 
 //calling this for edit 
 const editData = async (imageId, latestValue, selectedEvents, eventDate, location, last_modified) => {
-  console.log('Selected events:', selectedEvents);
-  console.log('database image idz', imageId)
   const database = await db;
+  console.log('🔍 location value:', location, ' | type:', typeof location);
 
   // 1. Update people
   if (Array.isArray(latestValue)) {
@@ -343,7 +342,7 @@ const editData = async (imageId, latestValue, selectedEvents, eventDate, locatio
       try {
         await database.transaction(async (tx) => {
           await tx.executeSql(
-            'UPDATE person SET name = ?, gender = ?,DOB=?,Age=? WHERE path = ?',
+            'UPDATE person SET name = ?, gender = ?, DOB = ?, Age = ? WHERE path = ?',
             [name, gender, DOB, Age, path]
           );
         });
@@ -358,10 +357,7 @@ const editData = async (imageId, latestValue, selectedEvents, eventDate, locatio
   if (selectedEvents && selectedEvents.length > 0) {
     try {
       await database.transaction(async (tx) => {
-        await tx.executeSql(
-          'DELETE FROM imageevent WHERE image_id = ?',
-          [imageId]
-        );
+        await tx.executeSql('DELETE FROM imageevent WHERE image_id = ?', [imageId]);
         console.log('✅ Deleted existing events for image:', imageId);
       });
 
@@ -379,54 +375,180 @@ const editData = async (imageId, latestValue, selectedEvents, eventDate, locatio
     }
   }
 
-  // 3. Update event date or location
+  // 3. Resolve location ID BEFORE transaction
+  let loc_id = null;
   try {
-    if (eventDate) {
-      await database.transaction(async (tx) => {
-        await tx.executeSql(
-          'UPDATE image SET event_date = ? WHERE id = ?',
-          [eventDate, imageId]
-
-        );
-        console.log('✅ Event date updated');
-      });
-    }
-
-    if (location) {
-      console.log('Location:', location);
+    if (typeof location === 'string' && location.trim().length > 0) {
+      console.log('📍 Resolving location...');
       await createLocationTable();
-      const loc_id = await insertLocation({ name: location });
-      await database.transaction(async (tx) => {
-        await tx.executeSql(
-          'UPDATE image SET location_id = ? WHERE id = ?',
-          [loc_id, imageId]
-        );
-        console.log('✅ Location updated');
-      });
+      loc_id = await insertLocation({ name: location.trim() });
+      console.log('📌 Got location ID:', loc_id);
     }
-
-    if (!eventDate && !location) {
-      console.log('No event date or location to update');
-    }
-  } catch (error) {
-    console.log('❌ Error updating image fields:', error.message);
+  } catch (err) {
+    console.error('❌ Error resolving location:', err.message);
   }
+
+  // 4. Update image table fields (event_date, location_id, last_modified, is_sync)
   try {
-    if (last_modified) {
-      await database.transaction(async (tx) => {
-        await tx.executeSql(
-          'UPDATE image SET is_sync = 0,last_modified=? WHERE id = ?',
-          [last_modified, imageId]
+    await database.transaction(async (tx) => {
+      await new Promise((resolve, reject) => {
+        tx.executeSql(
+          'SELECT * FROM image WHERE id = ?',
+          [imageId],
+          (_, result) => {
+            if (result.rows.length === 0) {
+              console.warn(`⚠️ No image found with ID: ${imageId}`);
+              resolve();
+              return;
+            }
 
+            const current = result.rows.item(0);
+
+            const updatedEventDate = eventDate ?? current.event_date;
+            const updatedLastModified = last_modified ?? current.last_modified;
+            const updatedLocationId = loc_id ?? current.location_id;
+
+            const shouldUpdate =
+              eventDate !== undefined ||
+              location !== undefined ||
+              last_modified !== undefined;
+
+            console.log('🧪 Update check:', {
+              updatedEventDate,
+              updatedLocationId,
+              updatedLastModified,
+              shouldUpdate,
+            });
+
+            if (shouldUpdate) {
+              tx.executeSql(
+                `UPDATE image 
+               SET event_date = ?, location_id = ?, last_modified = ?, is_sync = 0 
+               WHERE id = ?`,
+                [updatedEventDate, updatedLocationId, updatedLastModified, imageId],
+                () => {
+                  console.log('✅ Image table updated (with is_sync = 0)');
+                  resolve();
+                },
+                (_, err) => {
+                  console.error('❌ Failed to update image:', err);
+                  reject(err);
+                }
+              );
+            } else {
+              console.log('ℹ️ No image fields changed; skipping update');
+              resolve();
+            }
+          },
+          (_, err) => {
+            console.error('❌ Failed to select image:', err);
+            reject(err);
+          }
         );
-        console.log('✅ Event date updated');
       });
-    }
+    });
+  } catch (err) {
+    console.error('❌ Outer transaction failed:', err);
   }
-  catch (error) {
-    console.log('❌ Error updating image fields:', error.message);
-  }
-};
+}
+
+// const editData = async (imageId, latestValue, selectedEvents, eventDate, location, last_modified) => {
+//   console.log('Selected events:', selectedEvents);
+//   console.log('database image idz', imageId)
+//   const database = await db;
+
+//   // 1. Update people
+//   if (Array.isArray(latestValue)) {
+//     for (const person of latestValue) {
+//       const { name, gender, DOB, Age, personPath } = person;
+//       const path = person?.path ?? personPath;
+//       try {
+//         await database.transaction(async (tx) => {
+//           await tx.executeSql(
+//             'UPDATE person SET name = ?, gender = ?,DOB=?,Age=? WHERE path = ?',
+//             [name, gender, DOB, Age, path]
+//           );
+//         });
+//         console.log(`✅ Updated person ${name}`);
+//       } catch (error) {
+//         console.error(`❌ Failed to update person ${name}:`, error.message);
+//       }
+//     }
+//   }
+
+//   // 2. Delete & re-insert image events
+//   if (selectedEvents && selectedEvents.length > 0) {
+//     try {
+//       await database.transaction(async (tx) => {
+//         await tx.executeSql(
+//           'DELETE FROM imageevent WHERE image_id = ?',
+//           [imageId]
+//         );
+//         console.log('✅ Deleted existing events for image:', imageId);
+//       });
+
+//       for (const eventId of selectedEvents) {
+//         const intEventId = parseInt(eventId, 10);
+//         try {
+//           await insertImageEvent(imageId, intEventId);
+//           console.log(`✅ Inserted event ${intEventId} for image ${imageId}`);
+//         } catch (error) {
+//           console.log(`❌ Failed to insert event ${intEventId}:`, error.message);
+//         }
+//       }
+//     } catch (error) {
+//       console.log('❌ Error handling image events:', error.message);
+//     }
+//   }
+
+//   // 3. Update event date or location
+//   try {
+//     if (eventDate) {
+//       await database.transaction(async (tx) => {
+//         await tx.executeSql(
+//           'UPDATE image SET event_date = ? WHERE id = ?',
+//           [eventDate, imageId]
+
+//         );
+//         console.log('✅ Event date updated');
+//       });
+//     }
+
+//     if (location) {
+//       console.log('Location:', location);
+//       await createLocationTable();
+//       const loc_id = await insertLocation({ name: location });
+//       await database.transaction(async (tx) => {
+//         await tx.executeSql(
+//           'UPDATE image SET location_id = ? WHERE id = ?',
+//           [loc_id, imageId]
+//         );
+//         console.log('✅ Location updated');
+//       });
+//     }
+
+//     if (!eventDate && !location) {
+//       console.log('No event date or location to update');
+//     }
+//   } catch (error) {
+//     console.log('❌ Error updating image fields:', error.message);
+//   }
+//   try {
+//     if (last_modified) {
+//       await database.transaction(async (tx) => {
+//         await tx.executeSql(
+//           'UPDATE image SET is_sync = 0,last_modified=? WHERE id = ?',
+//           [last_modified, imageId]
+
+//         );
+//         console.log('✅ Event date updated');
+//       });
+//     }
+//   }
+//   catch (error) {
+//     console.log('❌ Error updating image fields:', error.message);
+//   }
+// };
 
 //get data or details screen 
 const getImageData = async (imageId) => {
@@ -841,10 +963,10 @@ const createImageEventTable = async () => {
     );
   END;
 `,
-[],
-() => console.log('✅ Trigger created on imageEvent'),
-(_, error) => { console.log('❌ Error creating trigger: ' + error.message); return true; }
-);
+      [],
+      () => console.log('✅ Trigger created on imageEvent'),
+      (_, error) => { console.log('❌ Error creating trigger: ' + error.message); return true; }
+    );
   });
 };
 
@@ -1626,7 +1748,7 @@ const searchImages = (filters) => {
       SelectedEvents = {},
     } = filters;
 
-    const clean = (arr) => arr.filter(val => val && val.toString().trim() !== '');
+    const clean = (arr) => Array.isArray(arr) ? arr.filter(val => val && val.toString().trim() !== '') : [];
     const wrapValues = (arr) => clean(arr).map(v => `'${v.toString().replace(/'/g, "''")}'`).join(',');
 
     const nameStr = wrapValues(Names);
@@ -1649,25 +1771,38 @@ const searchImages = (filters) => {
       WHERE i.is_deleted = 0
     `;
 
-    const conditions = [];
+    const personConditions = [];
 
-    // Person filters
-    if (nameStr) conditions.push(`p.name IN (${nameStr})`);
-    if (genderStr) conditions.push(`p.gender IN (${genderStr})`);
-    if (ageStr) conditions.push(`p.Age IN (${ageStr})`);
+    // Person Filters
+    if (Names.length) {
+      const likeConditions = clean(Names).map(name => `p.name LIKE '%${name.replace(/'/g, "''")}%'`);
+      personConditions.push(`(${likeConditions.join(' OR ')})`);
+    }
+    if (genderStr) personConditions.push(`p.gender IN (${genderStr})`);
+    if (ageStr) personConditions.push(`p.Age IN (${ageStr})`);
 
-    // Handle linked persons if name/gender/age provided
-    if (conditions.length > 0) {
-      const personSubquery = [];
-      if (nameStr) personSubquery.push(`name IN (${nameStr})`);
-      if (genderStr) personSubquery.push(`gender IN (${genderStr})`);
-      if (ageStr) personSubquery.push(`Age IN (${ageStr})`);
+    // Location Filters
+    if (locationStr) {
+      const likeConditions = clean(Locations).map(loc => `l.name LIKE '%${loc.replace(/'/g, "''")}%'`);
+      query += ` AND (${likeConditions.join(' OR ')})`;
+    }
 
-      const personWhere = personSubquery.length > 0 ? personSubquery.join(' AND ') : '';
+    // Date Filters
+    if (dateStr) {
+      query += ` AND i.capture_date IN (${dateStr})`;
+    }
 
+    // Event Filters
+    if (eventStr) {
+      query += ` AND e.id IN (${eventStr})`;
+    }
+
+    // Person or Linked Person Logic — only if person filters exist
+    if (personConditions.length > 0) {
+      const personWhere = personConditions.join(' AND ');
       query += `
         AND (
-          (${conditions.join(' AND ')})
+          (${personWhere})
           OR p.id IN (
             SELECT person2_id FROM person_links WHERE person1_id IN (
               SELECT id FROM person WHERE ${personWhere}
@@ -1681,14 +1816,11 @@ const searchImages = (filters) => {
       `;
     }
 
-    // Other filters
-    if (locationStr) query += ` AND l.name IN (${locationStr})`;
-    if (dateStr) query += ` AND i.capture_date IN (${dateStr})`;
-    if (eventStr) query += ` AND e.id IN (${eventStr})`;
-
     query += ` ORDER BY i.capture_date DESC;`;
 
-    // Execute query
+    // console.log('🔍 Final Query:\n', query);
+
+    // Execute Query
     db.transaction(tx => {
       tx.executeSql(
         query,
@@ -1699,6 +1831,8 @@ const searchImages = (filters) => {
             images.push({
               id: rows.item(i).id,
               path: rows.item(i).path,
+              capture_date: rows.item(i).capture_date,
+              location_id: rows.item(i).location_id,
             });
           }
           resolve(images);
@@ -1712,6 +1846,7 @@ const searchImages = (filters) => {
     });
   });
 };
+
 
 //FOR GROUPING OF PERSON 
 const getAllPersons = () => {
@@ -2228,15 +2363,99 @@ const clearAllTables = async () => {
   });
 };
 
+// const getLatestImageVersions = async () => {
+//   const database = await db;
+
+//   return new Promise((resolve, reject) => {
+//     database.transaction((tx) => {
+//       tx.executeSql(
+//         `SELECT id, path, MAX(version_no) AS version_no
+//          FROM ImageHistory
+//          GROUP BY id;`,
+//         [],
+//         (_, results) => {
+//           const rows = results.rows;
+//           let latestImages = [];
+
+//           for (let i = 0; i < rows.length; i++) {
+//             latestImages.push(rows.item(i));
+//           }
+//           console.log('✅ Latest image versions fetched:', latestImages);
+//           resolve(latestImages);
+//         },
+//         (_, error) => {
+//           console.log('❌ Error fetching latest image versions: ', error.message);
+//           reject(error);
+//         }
+//       );
+//     });
+//   });
+// };
 const getLatestImageVersions = async () => {
   const database = await db;
 
   return new Promise((resolve, reject) => {
     database.transaction((tx) => {
       tx.executeSql(
-        `SELECT id, path, MAX(version_no) AS version_no
-         FROM ImageHistory
-         GROUP BY id;`,
+//         `WITH ActiveVersion AS (
+//   SELECT id, MAX(version_no) AS version_no
+//   FROM ImageHistory
+//   WHERE is_active = 1
+//   GROUP BY id
+// ),
+// FallbackVersion AS (
+//   SELECT id, MAX(version_no) AS version_no
+//   FROM ImageHistory
+//   GROUP BY id
+// ),
+// FinalVersion AS (
+//   SELECT
+//     COALESCE(a.id, f.id) AS id,
+//     COALESCE(a.version_no, f.version_no) AS version_no
+//   FROM FallbackVersion f
+//   LEFT JOIN ActiveVersion a ON a.id = f.id
+// ),
+// Result AS (
+//   SELECT ih.*
+//   FROM ImageHistory ih
+//   JOIN FinalVersion fv
+//     ON ih.id = fv.id AND ih.version_no = fv.version_no
+// )
+// SELECT id, path, version_no
+// FROM Result;
+`WITH ActiveVersion AS (
+  SELECT id, MAX(version_no) AS active_version
+  FROM ImageHistory
+  WHERE is_active = 1
+  GROUP BY id
+),
+PreviousVersion AS (
+  SELECT 
+    id,
+    active_version - 1 AS version_no
+  FROM ActiveVersion
+),
+FallbackVersion AS (
+  -- This includes only those IDs where no active version exists
+  SELECT id, MAX(version_no) AS version_no
+  FROM ImageHistory
+  WHERE id NOT IN (SELECT id FROM ActiveVersion)
+  GROUP BY id
+),
+Combined AS (
+  SELECT * FROM PreviousVersion
+  UNION ALL
+  SELECT * FROM FallbackVersion
+),
+Result AS (
+  SELECT ih.*
+  FROM ImageHistory ih
+  JOIN Combined c ON ih.id = c.id AND ih.version_no = c.version_no
+)
+SELECT id, path, version_no
+FROM Result;
+
+`,
         [],
         (_, results) => {
           const rows = results.rows;
@@ -2245,7 +2464,7 @@ const getLatestImageVersions = async () => {
           for (let i = 0; i < rows.length; i++) {
             latestImages.push(rows.item(i));
           }
-          console.log('✅ Latest image versions fetched:', latestImages);
+          console.log('✅ Latest image versions (up to is_active=1) fetched:', latestImages);
           resolve(latestImages);
         },
         (_, error) => {
@@ -2265,7 +2484,7 @@ const getImageDetailsUndo = async (imageId, version) => {
       tx.executeSql(
         `SELECT * FROM ImageHistory WHERE id = ? AND version_no = ?`,
         [imageId, version],
-        (_, { rows }) => {
+        async (_, { rows }) => {
           if (rows.length === 0) {
             console.error('❌ No image history found');
             resolve(null);
@@ -2283,71 +2502,95 @@ const getImageDetailsUndo = async (imageId, version) => {
               hash: image.hash,
               persons_id: [],
               event_names: [],
-              location: ['Location not found'],
+              location: null,
             },
           };
 
-          // PERSONS
-          tx.executeSql(
-            `SELECT ph.*
-             FROM PersonHistory ph
-             INNER JOIN ImagePerson ip ON ph.id = ip.person_id
-             WHERE ip.image_id = ? AND ph.version_no = ?`,
-            [imageId, version],
-            (_, { rows }) => {
-              const persons = [];
-              for (let i = 0; i < rows.length; i++) {
-                const row = rows.item(i);
-                persons.push({
-                  id: row.id,
-                  person_name: row.name,
-                  gender: row.gender,
-                  person_path: row.path,
-                  DOB: row.DOB,
-                  Age: row.Age,
-                });
-              }
-              imageData[String(image.id)].persons_id = persons;
-            }
-          );
+          const promises = [];
 
-          // EVENTS
-          tx.executeSql(
-            `SELECT e.id, e.name
-             FROM Event e
-             INNER JOIN ImageEventHistory ieh ON e.id = ieh.event_id
-             WHERE ieh.image_id = ? AND ieh.version_no = ?`,
-            [imageId, version],
-            (_, { rows }) => {
-              const events = [];
-              for (let i = 0; i < rows.length; i++) {
-                events.push(rows.item(i).id);
-              }
-              imageData[String(image.id)].event_names = events;
-            }
-          );
-
-          // LOCATION
-          if (image.location_id) {
+          // 👤 PERSONS
+          promises.push(new Promise((res, rej) => {
             tx.executeSql(
-              `SELECT * FROM Location WHERE id = ?`,
-              [image.location_id],
+              `SELECT ph.*
+               FROM PersonHistory ph
+               INNER JOIN ImagePerson ip ON ph.id = ip.person_id
+               WHERE ip.image_id = ? AND ph.created_at = ?`,
+              [imageId, image.created_at],
               (_, { rows }) => {
-                if (rows.length > 0) {
-                  const loc = rows.item(0);
-                  imageData[String(image.id)].location = loc.name;
-
+                const persons = [];
+                for (let i = 0; i < rows.length; i++) {
+                  const row = rows.item(i);
+                  persons.push({
+                    id: row.id,
+                    person_name: row.name,
+                    gender: row.gender,
+                    person_path: row.path,
+                    DOB: row.DOB,
+                    Age: row.Age,
+                  });
                 }
+                imageData[String(image.id)].persons_id = persons;
+                res();
+              },
+              (_, error) => {
+                console.error('❌ Error loading persons:', error.message);
+                res(); // resolve even on error to not block
               }
             );
+          }));
+
+          // 📅 EVENTS
+          promises.push(new Promise((res, rej) => {
+            tx.executeSql(
+              `SELECT e.id,e.name
+               FROM Event e
+               INNER JOIN ImageEventHistory ieh ON e.id = ieh.event_id
+               WHERE ieh.image_id = ? AND ieh.version_no = ?`,
+              [imageId, version],
+              (_, { rows }) => {
+                const events = [];
+                for (let i = 0; i < rows.length; i++) {
+                  events.push({
+                    id: rows.item(i).id,
+                    name: rows.item(i).name
+                  });
+                }
+                imageData[String(image.id)].event_names = events;
+
+                res();
+              },
+              (_, error) => {
+                console.error('❌ Error loading events:', error.message);
+                res(); // resolve even on error
+              }
+            );
+          }));
+
+          // 📍 LOCATION
+          if (image.location_id) {
+            promises.push(new Promise((res, rej) => {
+              tx.executeSql(
+                `SELECT name FROM Location WHERE id = ?`,
+                [image.location_id],
+                (_, { rows }) => {
+                  if (rows.length > 0) {
+                    imageData[String(image.id)].location = rows.item(0).name;
+                  }
+                  res();
+                },
+                (_, error) => {
+                  console.error('❌ Error loading location:', error.message);
+                  res(); // resolve anyway
+                }
+              );
+            }));
           }
 
-          // Artificial delay to allow nested queries to complete (not ideal but works)
-          setTimeout(() => {
-            console.log('✅ Image Data (Undo):', imageData);
-            console.log('imagedd',imageData);
-            resolve(imageData);
-          }, 300); // Delay to ensure nested tx queries finish
+          // ✅ Wait for all subqueries to finish
+          await Promise.all(promises);
+
+          console.log('✅ Final Image Data (Undo):', imageData);
+          resolve(imageData);
         },
         (_, error) => {
           console.error('❌ SQL error while fetching ImageHistory:', error.message);
@@ -2358,7 +2601,9 @@ const getImageDetailsUndo = async (imageId, version) => {
     });
   });
 };
- const reactivateUndoHistory = (imageId, version, captureDate, lastModified) => {
+
+
+const reactivateUndoHistory = (imageId, version, captureDate, lastModified) => {
   return new Promise((resolve) => {
     const createdAt = new Date(captureDate || lastModified || new Date());
     const delta = 5000;
@@ -2409,16 +2654,220 @@ const getImageDetailsUndo = async (imageId, version) => {
   });
 };
 
+const getAllImageHistoryWithEvents = async () => {
+  return new Promise((resolve, reject) => {
+    db.transaction(tx => {
+      // Step 1: Get all ImageHistory entries
+      tx.executeSql(
+        `SELECT * FROM ImageHistory`,
+        [],
+        (_, { rows }) => {
+          const images = [];
+          const totalImages = rows.length;
+          let completed = 0;
+
+          if (totalImages === 0) {
+            resolve([]);
+            return;
+          }
+
+          for (let i = 0; i < rows.length; i++) {
+            const image = rows.item(i);
+            const imageRecord = {
+              id: image.id,
+              version_no: image.version_no,
+              path: image.path,
+              is_sync: image.is_sync,
+              capture_date: image.capture_date,
+              event_date: image.event_date,
+              last_modified: image.last_modified,
+              hash: image.hash,
+              location_id: image.location_id,
+              created_at: image.created_at,
+              events: [], // to be populated
+            };
+
+            // Step 2: Get related ImageEventHistory and Events for this image
+            tx.executeSql(
+              `SELECT e.id, e.name
+               FROM Event e
+               INNER JOIN ImageEventHistory ieh ON e.id = ieh.event_id
+               WHERE ieh.image_id = ? AND ieh.version_no = ?`,
+              [image.id, image.version_no],
+              (_, { rows }) => {
+                for (let j = 0; j < rows.length; j++) {
+                  const eventRow = rows.item(j);
+                  imageRecord.events.push({
+                    id: eventRow.id,
+                    name: eventRow.name,
+                  });
+                }
+
+                images.push(imageRecord);
+                completed++;
+                if (completed === totalImages) {
+                  resolve(images);
+                }
+              },
+              (_, error) => {
+                console.error('❌ Error fetching events for image ID:', image.id, error.message);
+                completed++;
+                if (completed === totalImages) {
+                  resolve(images);
+                }
+                return true;
+              }
+            );
+          }
+        },
+        (_, error) => {
+          console.error('❌ Error fetching ImageHistory:', error.message);
+          reject(error);
+          return true;
+        }
+      );
+    });
+  });
+};
+const checkAndUnlinkIfExists = (person1_id, person2_id) => {
+  return new Promise((resolve, reject) => {
+    db.transaction((txn) => {
+      // Check if link exists
+      txn.executeSql(
+        `SELECT * FROM person_links 
+         WHERE (person1_id = ? AND person2_id = ?) 
+            OR (person1_id = ? AND person2_id = ?)`,
+        [person1_id, person2_id, person2_id, person1_id],
+        (checkTxn, res) => {
+          if (res.rows.length > 0) {
+            // Link exists, now delete it
+            txn.executeSql(
+              `DELETE FROM person_links 
+               WHERE (person1_id = ? AND person2_id = ?) 
+                  OR (person1_id = ? AND person2_id = ?)`,
+              [person1_id, person2_id, person2_id, person1_id],
+              () => resolve('Link removed.'),
+              (deleteTxn, error) => reject('Error deleting link: ' + error.message)
+            );
+          } else {
+            // No link found
+            resolve('No link to remove.');
+          }
+        },
+        (checkTxn, error) => {
+          reject('Error checking for link: ' + error.message);
+        }
+      );
+    });
+  });
+};
+
+const clearhistory = async () => {
+  const database = await db;
+
+  return new Promise((resolve, reject) => {
+    database.transaction((tx) => {
+      // 1. Disable foreign key constraints temporarily
+      tx.executeSql('PRAGMA foreign_keys = OFF;');
+
+      // 2. Get only history-related table names
+      tx.executeSql(
+        `SELECT name FROM sqlite_master 
+         WHERE type='table' 
+         AND name NOT LIKE 'sqlite_%' 
+         AND (name LIKE '%history%' OR name LIKE '%hist%');`,
+        [],
+        (tx, results) => {
+          const len = results.rows.length;
+
+          // 3. Clear each history table one by one
+          for (let i = 0; i < len; i++) {
+            const tableName = results.rows.item(i).name;
+            tx.executeSql(`DELETE FROM "${tableName}";`, [], () => {
+              console.log(`🧹 Cleared history table: ${tableName}`);
+            });
+          }
+
+          // Optional: Reset AUTOINCREMENT counters only for history tables
+          // You can skip this if not needed or filter `sqlite_sequence` based on the table names
+
+          // 4. Re-enable foreign keys
+          tx.executeSql('PRAGMA foreign_keys = ON;', [], () => {
+            console.log('✅ History tables cleared successfully.');
+            resolve();
+          });
+        },
+        (tx, error) => {
+          console.error('❌ Failed to fetch history table names:', error);
+          reject(error);
+        }
+      );
+    });
+  });
+};
+const getpersonnames= () =>{
+   return new Promise((resolve, reject) => {
+    db.transaction((txn) => {
+      txn.executeSql(
+        `SELECT name FROM person`,
+        [],
+        (sqlTxn, res) => {
+          let persons = [];
+          for (let i = 0; i < res.rows.length; i++) {
+            persons.push(res.rows.item(i));
+          }
+          resolve(persons);
+        },
+        (sqlTxn, error) => reject(error.message)
+      );
+    });
+  });
+}
+const getagewise= (name) =>{
+  console.log(name)
+  return new Promise((resolve, reject) => {
+    db.transaction((txn) => {
+      txn.executeSql(
+        `SELECT id,DOB FROM person where name= ?`,
+        [name],
+        (sqlTxn, res) => {
+          let persons = [];
+          for (let i = 0; i < res.rows.length; i++) {
+            persons.push(res.rows.item(i));
+          }
+
+          resolve(persons);
+        },
+        (sqlTxn, error) => reject(error.message)
+      );
+    });
+  });
+}
 export {
+  getAllImageHistoryWithEvents,
   createTableImage, createPersonTable, createImageEventTable,
   InsertImageData, getAllImageData, DeletetAllData, insertPerson, linkImageToPerson, getPeopleWithImages, getPersonTableColumns,
   getImagesForPerson, insertEvent, getAllEvents, getImageDetails, editDataForMultipleIds, checkIfHashExists, getImageData, getLocationById,
   getEventsByImageId, getImagesGroupedByDate, getDataByDate, groupImagesByLocation, getImagesByLocationId, getImagesGroupedByEvent,
   getImagesByEventId, markImageAsDeleted, getAllLocations, getAllPersonLinks, insertPersonLinkIfNotExists, searchImages,
   getAllPersons, getImagePersonMap, getPersonAndLinkedList, getPersonData, handleUpdateEmbeddings, getAllImages, mergepeople, getAllSyncImages,
-  createLinksIfNotExist, getLatestImageVersions, getImageDetailsUndo,reactivateUndoHistory,
+  createLinksIfNotExist, getLatestImageVersions, getImageDetailsUndo, reactivateUndoHistory, checkAndUnlinkIfExists,
 
-  resetImageTable, clearAllTables
-
+  resetImageTable, clearAllTables, clearhistory
+,getpersonnames,getagewise
 };
 
+// WITH ActiveVersion AS (
+//   SELECT id, version_no AS active_version
+//   FROM ImageHistory
+//   WHERE is_active = 1
+// ),
+// NextVersion AS (
+//   SELECT ih.*
+//   FROM ImageHistory ih
+//   JOIN ActiveVersion av
+//     ON ih.id = av.id
+//    AND ih.version_no = av.active_version + 1
+// )
+// SELECT id, path, version_no
+// FROM NextVersion;
